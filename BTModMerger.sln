@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35103.136
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTModMerger", "BTModMerger.csproj", "{20CCD083-11D1-4C08-B23C-AD6588C3784B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{20CCD083-11D1-4C08-B23C-AD6588C3784B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20CCD083-11D1-4C08-B23C-AD6588C3784B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20CCD083-11D1-4C08-B23C-AD6588C3784B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20CCD083-11D1-4C08-B23C-AD6588C3784B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CE367D0E-99F3-4FC3-9D48-978A60381C23}
+	EndGlobalSection
+EndGlobal
