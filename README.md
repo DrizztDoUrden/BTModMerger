@@ -50,6 +50,10 @@ Indent an XML file.
 * input    Path to a file to indent. If not provided, cin would be used.
 * output   Path to a file to store result into. If not provided, cout would be used.
 
+## Universal options, aka what can be added to any command
+
+* PathToMetadata Path to a metadata file. Defaults to: exe_dir/BTMetadata.xml. If unset would be generated if missing.
+
 ## Caveats
 
 It is imposible to automatically determine wether some xml node group is an indexed array, meaning it can have multiple entities with either no identifers or duplicate ones. For such cases it is possible to add them to `BTMetadata.xml` file that is next to the executable. If it is missing any successful invokation of `Diff` or `Apply` would regenerate it. Simple cases of indexed collections (ones you do not expect to have items removed by mods from) can have their child items added to `Indexed` collection there. The rest should have them added to `Tricky`. Otherwise, indexing of items may be incorrect when applying diffs after other diffs with items removed.

@@ -12,7 +12,7 @@ sealed internal class CLI
     public bool Help { get; set; }
 
     [ArgExistingFile]
-    [ArgDescription("Path to a metadata file. Defaults to: exe/dir/BTMetadata.xml. If set to default value would be generated if missing.")]
+    [ArgDescription("Path to a metadata file. Defaults to: exe_dir/BTMetadata.xml. If unset would be generated if missing.")]
     public string PathToMetadata { get; set; } = Path.Combine(new FileInfo(Assembly.GetExecutingAssembly().Location).Directory!.FullName, "BTMetadata.xml");
 
     [ArgActionMethod, ArgDescription("Transform a mod to moddiff format")]
