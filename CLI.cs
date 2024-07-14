@@ -48,6 +48,13 @@ sealed internal class CLI
             ? Console.OpenStandardInput()
             : File.OpenRead(@base);
 
+        if (!string.IsNullOrEmpty(output))
+        {
+            var containingDir = new FileInfo(output).Directory;
+            if (!containingDir!.Exists)
+                containingDir.Create();
+        }
+
         using var outputFile = string.IsNullOrWhiteSpace(output)
             ? Console.OpenStandardOutput()
             : File.OpenWrite(output);
@@ -67,6 +74,12 @@ sealed internal class CLI
             ? Console.OpenStandardInput()
             : File.OpenRead(input);
 
+        if (!string.IsNullOrEmpty(output))
+        {
+            var containingDir = new FileInfo(output).Directory;
+            if (!containingDir!.Exists)
+                containingDir.Create();
+        }
         using var outputFile = string.IsNullOrWhiteSpace(output)
             ? Console.OpenStandardOutput()
             : File.OpenWrite(output);
