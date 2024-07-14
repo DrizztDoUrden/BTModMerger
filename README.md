@@ -5,8 +5,11 @@ A tool to transform [Barotrauma](https://barotraumagame.com) mods into a diff-li
 ## Prerequisites
 
 To build: [.Net SDK 8](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
-To run: either [.Net SDK 8 or .NET Runtime 8](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
+
+To run: [.Net SDK 8 or .NET Runtime 8](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
+
 To run self-contained verision: nothing, I guess.
+
 Only tested on windows 11, but should build just fine or with minor modifications for linux as well.
 
 ## How to use:
