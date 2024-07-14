@@ -1,4 +1,6 @@
-﻿using System.Xml.Linq;
+﻿using System;
+using System.IO;
+using System.Xml.Linq;
 
 namespace BTModMerger;
 
@@ -24,12 +26,6 @@ sealed internal class Merger
 
     private static void Apply(XElement diffElement, XContainer to, string diffPath)
     {
-        foreach (var child in diffElement.Elements(BTMMSchema.Elements.RemoveAttribute))
-        {
-            var path = child.GetBTMMPath();
-            ((XElement)to).Attribute(path!)!.Remove();
-        }
-
         foreach (var child in diffElement.Elements(BTMMSchema.Elements.SetAttribute))
         {
             var path = child.GetBTMMPath();
@@ -39,34 +35,44 @@ sealed internal class Merger
 
         foreach (var child in diffElement.Elements(BTMMSchema.Elements.Into))
         {
+            var childDiffPath = $"{diffPath}/{child.Name}";
             var target = child.GetBTMMPath()!;
-            var childDiffPath = $"{diffPath}/{target}";
             var targetElement = GetTarget(target, to, diffPath);
+
+            foreach (var attr in child.Attributes())
+            {
+                var operation = attr.Name.Namespace;
+                var attrTarget = attr.Name.LocalName;
+                if (operation == BTMMSchema.AddNamespace) { targetElement.SetAttributeValue(attrTarget, attr.Value); }
+                else if (operation == BTMMSchema.RemoveNamespace) { targetElement.Attribute(attrTarget)!.Remove(); }
+                else if (operation == BTMMSchema.Namespace) { /* target path, etc */ }
+                else throw new InvalidDataException($"Invalid attribute change operation (xmlns): {operation} at {childDiffPath}/{attr.Name}");
+            }
 
             Apply(child, targetElement, childDiffPath);
         }
 
-        foreach (var child in diffElement.Elements(BTMMSchema.Elements.RemoveElements).Reverse())
+        var toRemove = new List<(XElement item, int amount)>();
+        var originalToChildren = to.Elements().ToArray();
+        var normalizedChildren = originalToChildren.Select(e => XElementComparator.NormalizeElement(e)).ToArray();
+
+        foreach (var child in diffElement.Elements(BTMMSchema.Elements.RemoveElements))
         {
             var target = child.GetBTMMPath()!;
 
             if (target is not null)
             {
-                var targetElement = GetTarget(target, to, diffPath);
-                targetElement.Remove();
+                var targetItem = GetTarget(target, to, diffPath);
+                toRemove.Add((targetItem, child.GetBTMMAmount()));
             }
             else
             {
-                var children = to.Elements().ToArray();
-                var normalizedChildren = children.Select(e => XElementComparator.NormalizeElement(e)).ToArray();
-
-                var targets = child.Elements()
-                    .Select(e => XElementComparator.NormalizeElement(e))
-                    .Select(e => Array.FindIndex(normalizedChildren, e2 => XNode.DeepEquals(e, e2)))
-                    .Select(idx => children[idx]);
-
-                foreach (var toDelete in targets)
-                    toDelete.Remove();
+                toRemove.AddRange(child.Elements().Select(item =>
+                {
+                    var tri = new XElement(item);
+                    tri.Attribute(BTMMSchema.Attributes.Amount)?.Remove();
+                    return (tri, item.GetBTMMAmount());
+                }));
             }
         }
 
@@ -77,6 +83,39 @@ sealed internal class Merger
             for (var i = 0; i < amount; ++i)
                 foreach (var toAdd in child.Elements())
                     to.Add(toAdd);
+        }
+
+        foreach (var child in diffElement.Elements())
+        {
+            if (child.Name.Namespace == BTMMSchema.AddNamespace || child.Name.Namespace == XNamespace.None)
+            {
+                var toAdd = new XElement(child);
+                toAdd.Attribute(BTMMSchema.Attributes.Amount)?.Remove();
+                var amount = child.GetBTMMAmount()!;
+
+                for (var i = 0; i < amount; ++i)
+                    to.Add(toAdd);
+            } else if (child.Name.Namespace == BTMMSchema.RemoveNamespace)
+            {
+                var item = new XElement(child)
+                {
+                    Name = child.Name.LocalName,
+                };
+                item.Attribute(BTMMSchema.Attributes.Amount)?.Remove();
+
+                toRemove.Add((item, child.GetBTMMAmount()));
+            }
+        }
+
+        toRemove = toRemove
+            .Select(pair => (XElementComparator.NormalizeElement(pair.item), pair.amount))
+            .Deduplicate();
+
+        foreach (var (item, amount) in toRemove)
+        {
+            var idx = Array.FindIndex(normalizedChildren, e2 => XNode.DeepEquals(item, e2));
+
+            originalToChildren[idx].Remove();
         }
     }
 

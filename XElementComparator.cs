@@ -12,26 +12,28 @@ static class XElementComparator
         public static XName noNamespaceSchemaLocation = xsi + "noNamespaceSchemaLocation";
     }
 
-    public static List<(XElement item, int count)> Deduplicate(this IEnumerable<XElement> items)
+    public static List<(XElement item, int count)> Deduplicate(this IEnumerable<XElement> items) => Deduplicate(items.Select(i => (i, 1)));
+
+    public static List<(XElement item, int count)> Deduplicate(this IEnumerable<(XElement item, int count)> items)
     {
         var ret = new List<(XElement item, int count)>();
         var tmp = items.ToList();
 
         for (var outerIndex = 0; outerIndex < tmp.Count; ++outerIndex)
         {
-            var count = 1;
+            var count = tmp[outerIndex].count;
 
             for (var innerIndex = outerIndex + 1; innerIndex < tmp.Count; ++innerIndex)
             {
-                if (XNode.DeepEquals(tmp[outerIndex], tmp[innerIndex]))
+                if (XNode.DeepEquals(tmp[outerIndex].item, tmp[innerIndex].item))
                 {
+                    count += tmp[innerIndex].count;
                     tmp.RemoveAt(innerIndex);
                     --innerIndex;
-                    ++count;
                 }
             }
 
-            ret.Add((tmp[outerIndex], count));
+            ret.Add((tmp[outerIndex].item, count));
         }
 
         return ret;

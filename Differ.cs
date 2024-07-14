@@ -1,4 +1,5 @@
-﻿using System.Xml.Linq;
+﻿using System.Collections.Generic;
+using System.Xml.Linq;
 
 namespace BTModMerger;
 
@@ -39,15 +40,17 @@ internal static class Differ
         var output = new XDocument(
             new XElement(BTMMSchema.Elements.Diff,
                 new XAttribute(XNamespace.Xmlns + BTMMSchema.NamespaceAlias, BTMMSchema.Namespace),
+                new XAttribute(XNamespace.Xmlns + BTMMSchema.AddNamespaceAlias, BTMMSchema.AddNamespace),
+                new XAttribute(XNamespace.Xmlns + BTMMSchema.RemoveNamespaceAlias, BTMMSchema.RemoveNamespace),
                 BTMMSchema.Into(modRoot.Name.ToString(), ProcessRootElements(baseRoot, modRoot))
             )
         );
         return output;
     }
 
-    private static List<XElement> ProcessRootElements(XElement baseRoot, XElement modRoot)
+    private static List<XObject> ProcessRootElements(XElement baseRoot, XElement modRoot)
     {
-        var results = new List<XElement>();
+        var results = new List<XObject>();
         var toAdd = new List<XElement>();
 
         foreach (var child in modRoot.Elements())
@@ -73,12 +76,12 @@ internal static class Differ
         }
 
         if (toAdd.Count > 0)
-            results.Add(BTMMSchema.AddElements(toAdd));
+            results.AddRange(BTMMSchema.AddElements(toAdd));
 
         return results;
     }
 
-    private static bool ProcessOverride(XElement @base, XElement @override, out List<XElement> results)
+    private static bool ProcessOverride(XElement @base, XElement @override, out List<XObject> results)
     {
         var hasSomething = false;
         results = [];
@@ -113,7 +116,7 @@ internal static class Differ
         return hasSomething;
     }
 
-    private static bool ProcessOverridden(XElement @base, XElement mod, out List<XElement> results)
+    private static bool ProcessOverridden(XElement @base, XElement mod, out List<XObject> results)
     {
         var hasSomething = false;
         results = [];
@@ -190,7 +193,7 @@ internal static class Differ
             if (modChild is not null)
                 continue;
 
-            toRemove.Add(child);
+            toRemove.AddRange(BTMMSchema.RemoveElements(child));
             hasSomething = true;
         }
 
@@ -210,14 +213,14 @@ internal static class Differ
 
                 if (delta > 0)
                 {
-                    if (modCount == 1)
+                    if (delta == 1)
                         toAdd.Add(item);
                     else
                         results.Add(BTMMSchema.AddElements(modCount, item));
                 }
                 else
                 {
-                    toRemove.AddRange(Enumerable.Repeat(item, -delta));
+                    toRemove.Add(BTMMSchema.RemoveElement(-delta, item));
                 }
 
                 hasSomething = true;
@@ -234,14 +237,14 @@ internal static class Differ
 
                 if (delta > 0)
                 {
-                    if (modCount == 1)
+                    if (delta == 1)
                         toAdd.Add(item);
                     else
                         results.Add(BTMMSchema.AddElements(modCount, item));
                 }
                 else
                 {
-                    toRemove.AddRange(Enumerable.Repeat(item, -delta));
+                    toRemove.Add(BTMMSchema.RemoveElement(-delta, item));
                 }
 
                 hasSomething = true;
@@ -249,15 +252,15 @@ internal static class Differ
         }
 
         if (toAdd.Count > 0)
-            results.Add(BTMMSchema.AddElements(toAdd));
+            results.AddRange(BTMMSchema.AddElements(toAdd));
 
         if (toRemove.Count > 0)
-            results.Add(BTMMSchema.RemoveElements(toRemove));
+            results.AddRange(toRemove);
 
         return hasSomething;
     }
 
-    private static void ProcessOverriddenAttributes(XElement @base, XElement mod, ref List<XElement> results, ref bool hasSomething)
+    private static void ProcessOverriddenAttributes(XElement @base, XElement mod, ref List<XObject> results, ref bool hasSomething)
     {
         foreach (var attr in mod.Attributes())
         {
@@ -268,10 +271,7 @@ internal static class Differ
             if (value == baseAttr?.Value)
                 continue;
 
-            results.Add(new(BTMMSchema.Elements.SetAttribute,
-                new XAttribute(BTMMSchema.Attributes.Path, name),
-                new XAttribute(BTMMSchema.Attributes.Value, value)
-            ));
+            results.Add(BTMMSchema.SetAttribute(name.LocalName, value));
             hasSomething = true;
         }
 
@@ -284,9 +284,7 @@ internal static class Differ
             if (modAttr is not null)
                 continue;
 
-            results.Add(new(BTMMSchema.Elements.RemoveAttribute,
-                new XAttribute(BTMMSchema.Attributes.Path, name)
-            ));
+            results.Add(BTMMSchema.RemoveAttribute(name.LocalName));
             hasSomething = true;
         }
 

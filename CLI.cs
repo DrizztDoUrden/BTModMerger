@@ -1,4 +1,5 @@
-﻿using System.Xml.Linq;
+﻿using System.Reflection;
+using System.Xml.Linq;
 
 using PowerArgs;
 
@@ -9,6 +10,10 @@ sealed internal class CLI
 {
     [HelpHook, ArgShortcut("-?"), ArgDescription("Shows this help")]
     public bool Help { get; set; }
+
+    [ArgExistingFile]
+    [ArgDescription("Path to a metadata file. Defaults to: exe/dir/BTMetadata.xml. If set to default value would be generated if missing.")]
+    public string PathToMetadata { get; set; } = Path.Combine(new FileInfo(Assembly.GetExecutingAssembly().Location).Directory!.FullName, "BTMetadata.xml");
 
     [ArgActionMethod, ArgDescription("Transform a mod to moddiff format")]
     public void Diff(
@@ -21,6 +26,7 @@ sealed internal class CLI
         [ArgDescription("Path to a file to store result into. Optional. If not provided, defaults to <base>.moddiff.")]
         string? output)
     {
+        BTMetadata.Path = PathToMetadata;
         Differ.Apply(@base, mod, output ?? $"{mod}.diff");
     }
 
@@ -36,6 +42,8 @@ sealed internal class CLI
         [ArgDescription("Path to a file to store result into. Optional. If not provided, cout would be used.")]
         string? output)
     {
+        BTMetadata.Path = PathToMetadata;
+
         using var baseFile = string.IsNullOrWhiteSpace(@base)
             ? Console.OpenStandardInput()
             : File.OpenRead(@base);

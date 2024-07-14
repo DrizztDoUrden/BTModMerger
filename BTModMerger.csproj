@@ -9,6 +9,8 @@
     <PublishTrimmed>False</PublishTrimmed>
     <PublishAot>False</PublishAot>
     <Configurations>Debug;Release</Configurations>
+    <FileVersion>1.0.1.0</FileVersion>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>

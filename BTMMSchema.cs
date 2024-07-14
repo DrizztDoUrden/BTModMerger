@@ -7,6 +7,12 @@ public static class BTMMSchema
     public static readonly string NamespaceAlias = "btmm";
     public static readonly XNamespace Namespace = "https://github.com/DrizztDoUrden/BTModMerger";
 
+    public static readonly string AddNamespaceAlias = "add";
+    public static readonly XNamespace AddNamespace = $"{Namespace.NamespaceName}/FakeURI/Add";
+
+    public static readonly string RemoveNamespaceAlias = "remove";
+    public static readonly XNamespace RemoveNamespace = $"{Namespace.NamespaceName}/FakeURI/Remove";
+
     public static class Elements
     {
         public static readonly XName Diff = Namespace + nameof(Diff);
@@ -28,20 +34,40 @@ public static class BTMMSchema
         new XAttribute(Attributes.Path, path)
     );
 
-    public static XElement RemoveElements(IEnumerable<XElement> targets) => new(Elements.RemoveElements, targets);
-    public static XElement RemoveElement(params XElement[] targets) => RemoveElements(targets.AsEnumerable());
+    public static XElement RemoveElement(int amount, XElement child)
+    {
+        var ret = new XElement(child)
+        {
+            Name = RemoveNamespace + child.Name.LocalName,
+        };
+        if (amount != 1) { ret.SetAttributeValue(Attributes.Amount, amount); }
+        return ret;
+    }
 
-    public static XElement Into(string path, IEnumerable<XElement> children) => new(Elements.Into,
+    public static IEnumerable<XElement> RemoveElements(IEnumerable<XElement> targets)
+        => targets
+            .Select(target => new XElement(target)
+            { 
+                Name = RemoveNamespace + target.Name.LocalName
+            });
+
+    public static IEnumerable<XElement> RemoveElements(params XElement[] targets) => RemoveElements(targets.AsEnumerable());
+
+    public static XElement Into(string path, IEnumerable<XObject> children) => new(Elements.Into,
         new XAttribute(Attributes.Path, path),
         children
     );
 
-    public static XElement AddElements(params XElement[] children) => AddElements(children.AsEnumerable());
-    public static XElement AddElements(IEnumerable<XElement> children) => new(Elements.AddElements, children);
+    public static IEnumerable<XElement> AddElements(params XElement[] children) => AddElements(children.AsEnumerable());
+    public static IEnumerable<XElement> AddElements(IEnumerable<XElement> children) => children;
 
-    public static XElement AddElements(int amount, params XElement[] children) => AddElements(amount, children.AsEnumerable());
-    public static XElement AddElements(int amount, IEnumerable<XElement> children) => new(Elements.AddElements,
-        new XAttribute(Attributes.Amount, amount),
-        children
-    );
+    public static XElement AddElements(int amount, XElement child)
+    {
+        var ret = new XElement(child);
+        ret.SetAttributeValue(Attributes.Amount, amount);
+        return ret;
+    }
+
+    public static XAttribute SetAttribute(string name, string? value) => new(AddNamespace + name, value ?? "");
+    public static XAttribute RemoveAttribute(string name) => new(RemoveNamespace + name, "");
 }

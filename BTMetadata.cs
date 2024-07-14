@@ -1,10 +1,11 @@
-﻿using System.Reflection;
-using System.Xml.Serialization;
+﻿using System.Xml.Serialization;
 
 namespace BTModMerger;
 
 public class BTMetadata
 {
+    public static string Path { get; set; }
+
     public string[] Indexed { get; set; } =
     {
         "ItemSet",
@@ -37,20 +38,17 @@ public class BTMetadata
 
     private static BTMetadata Load()
     {
-        var exePath = Assembly.GetExecutingAssembly().Location;
-        var exeDir = new FileInfo(exePath).Directory!.FullName;
-        var path = Path.Combine(exeDir, "BTMetadata.xml");
         var serializer = new XmlSerializer(typeof(BTMetadata));
 
-        if (!File.Exists(path))
+        if (!File.Exists(Path))
         {
-            using var blank = File.Create(path);
+            using var blank = File.Create(Path);
             var ret = new BTMetadata();
             serializer.Serialize(blank, ret);
             return ret;
         }
 
-        using var file = File.OpenRead(path);
+        using var file = File.OpenRead(Path);
         return (BTMetadata)serializer.Deserialize(file)!;
     }
 }
