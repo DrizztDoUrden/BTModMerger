@@ -57,7 +57,7 @@ sealed internal class CLI
 
         using var outputFile = string.IsNullOrWhiteSpace(output)
             ? Console.OpenStandardOutput()
-            : File.OpenWrite(output);
+            : File.Create(output);
 
         Merger.Apply(baseFile, mod, outputFile);
     }
@@ -80,9 +80,10 @@ sealed internal class CLI
             if (!containingDir!.Exists)
                 containingDir.Create();
         }
+
         using var outputFile = string.IsNullOrWhiteSpace(output)
             ? Console.OpenStandardOutput()
-            : File.OpenWrite(output);
+            : File.Create(output);
 
         XDocument.Load(inputFile).Save(outputFile);
     }

@@ -158,17 +158,27 @@ sealed internal class Merger
 
     private static XElement GetTarget(string target, XContainer from, string diffPath)
     {
-        var ss0 = ExtractSubscript(ref target, diffPath);
-        var ss1 = ExtractSubscript(ref target, diffPath);
+        var parts = target.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var targetElement = from;
 
-        var elems = from.Elements(target);
-        elems = FilterBySubscript(elems, ss0, diffPath);
-        elems = FilterBySubscript(elems, ss1, diffPath);
-        var array = elems.ToArray();
+        foreach (var part in parts)
+        {
+            var partCopy = part;
 
-        if (array.Length != 1)
-            throw new InvalidDataException($"A subscript has produced zero or more than one result at {diffPath}");
+            var ss0 = ExtractSubscript(ref partCopy, diffPath);
+            var ss1 = ExtractSubscript(ref partCopy, diffPath);
 
-        return array[0];
+            var elems = targetElement.Elements(partCopy);
+            elems = FilterBySubscript(elems, ss0, diffPath);
+            elems = FilterBySubscript(elems, ss1, diffPath);
+            var array = elems.ToArray();
+
+            if (array.Length != 1)
+                throw new InvalidDataException($"A subscript has produced zero or more than one result at {diffPath}");
+
+            targetElement = array[0];
+        }
+
+        return (XElement)targetElement;
     }
 }

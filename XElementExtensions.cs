@@ -32,7 +32,10 @@ internal static class XElementExtensions
     private static bool CompareCIS(string l, string r)
         => l.Equals(r, StringComparison.CurrentCultureIgnoreCase);
 
+    public static bool IsTricky(this XElement element)
+        => BTMetadata.Instance.Tricky.Contains(element.Name.LocalName.ToLower());
+
     public static bool IsIndexed(this XElement element)
         => BTMetadata.Instance.Indexed.Contains(element.Name.LocalName.ToLower())
-            || BTMetadata.Instance.Tricky.Contains(element.Name.LocalName.ToLower());
+            || element.IsTricky();
 }

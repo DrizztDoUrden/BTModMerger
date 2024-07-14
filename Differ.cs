@@ -68,6 +68,36 @@ internal static class Differ
         }
     }
 
+    private static (XElement? toItem, string path) FindBaseItem(XElement element, XElement toContainer, XElement fromContainer, string path = "")
+    {
+        var childName = element.Name;
+        var targets = toContainer.Elements(childName).ToArray();
+
+        var childId = element.GetBTIdentifier();
+        var childIsIndexed = element.IsIndexed() || childId is null && targets.Length > 1 || childId is not null && targets.Count(e => e.GetBTIdentifier() == childId) > 1;
+
+        var childIndex = -1;
+
+        if (childIsIndexed)
+        {
+            childIndex = fromContainer.Elements(childName).ToList().IndexOf(element);
+            targets = targets.Skip(childIndex).Take(1).ToArray();
+        }
+        else
+        {
+            if (childId is not null)
+                targets = targets.Where(t => t.GetBTIdentifier() == childId).ToArray();
+        }
+
+        var toChild = targets.FirstOrDefault();
+
+        var childPath = string.IsNullOrEmpty(path) ? childName.ToString() : $"{path}/{childName}";
+        if (childId is not null) childPath += $"[@{childId}]";
+        if (childIsIndexed) childPath += $"[{childIndex}]";
+
+        return (toChild, childPath);
+    }
+
     private static bool ProcessRootElement(XElement baseRoot, XElement modRoot, out List<XObject> results)
     {
         results = [];
@@ -82,36 +112,48 @@ internal static class Differ
         SewageDisposal(pile);
         // now we have proper children that are not overrides and do not, I repeat, do not give us rectum cancer
 
+        var justAdd = new Dictionary<string, List<XElement>>();
+
         foreach (var (child, isOverride, path) in pile)
         {
             if (!isOverride)
             {
-                results.AddRange(BTMMSchema.AddElements(child));
+                if (!justAdd.TryGetValue(path, out var list))
+                {
+                    list = [];
+                    justAdd.Add(path, list);
+                }
+                list.Add(child);
                 hasSomething = true;
                 continue;
             }
 
-            var childName = child.Name;
-            var childId = child.GetBTIdentifier();
-            var childIsIndexed = child.IsIndexed();
+            var (baseChild, childPath) = FindBaseItem(child, baseRoot, modRoot, path);
 
-            var childIndex = childIsIndexed
-                ? baseRoot.Elements(childName).ToList().IndexOf(modRoot)
-                : 0;
-
-            var baseChild = childIsIndexed
-                ? baseRoot.Elements(childName).Skip(childIndex).First()
-                : baseRoot.Elements(childName).Single(e => e.GetBTIdentifier() == childId);
-
-            var childPath = $"{path}/{childName}";
-            if (childId is not null) childPath += $"[@{childId}]";
-            if (childIsIndexed) childPath += $"[{childIndex}]";
-
-            if (ProcessOverridden(baseChild, child, out var tmp))
+            if (baseChild is not null)
             {
-                results.Add(BTMMSchema.Into(childPath, tmp));
-                hasSomething = true;
+                if (ProcessOverridden(baseChild, child, out var tmp))
+                {
+                    results.Add(BTMMSchema.Into(childPath, tmp));
+                    hasSomething = true;
+                }
             }
+            else
+            {
+                // Rectum cancer of overriding non-existant elements
+                if (!justAdd.TryGetValue(path, out var list))
+                {
+                    list = [];
+                    justAdd.Add(path, list);
+                }
+                list.Add(child);
+            }
+        }
+
+        foreach (var (path, list) in justAdd)
+        {
+            results.Add(BTMMSchema.Into(path, list));
+            hasSomething = true;
         }
 
         return hasSomething;
@@ -130,65 +172,38 @@ internal static class Differ
 
         foreach (var child in mod.Elements())
         {
-            var isTricky = BTMetadata.Instance.Tricky.Contains(child.Name.LocalName);
-
-            if (isTricky)
+            if (child.IsTricky())
             {
                 tricky.Add(child.Name);
                 continue;
             }
 
-            var name = child.Name;
-            var id = child.GetBTIdentifier();
-            var isIndexed = BTMetadata.Instance.Indexed.Contains(child.Name.LocalName);
-
-            var index = isIndexed
-                ? mod.Elements(name).ToList().IndexOf(child)
-                : 0;
-
-            var baseChild = isIndexed
-                ? @base.Elements(name).Skip(index).FirstOrDefault()
-                : @base.Elements(name).FirstOrDefault(e => e.GetBTIdentifier() == id);
+            var (baseChild, childPath) = FindBaseItem(child, @base, mod);
 
             if (baseChild is null)
             {
-                toAdd.Add(child);
+                results.AddRange(BTMMSchema.AddElements(child));
                 hasSomething = true;
-                continue;
             }
-
-            var childPath = name.ToString();
-            if (id is not null) childPath += $"[@{id}]";
-            if (isIndexed) childPath += $"[{index}]";
-
-            if (ProcessOverridden(baseChild, child, out var tmp))
+            else
             {
-                results.Add(BTMMSchema.Into(childPath, tmp));
-                hasSomething = true;
+                if (ProcessOverridden(baseChild!, child, out var tmp))
+                {
+                    results.Add(BTMMSchema.Into(childPath, tmp));
+                    hasSomething = true;
+                }
             }
         }
 
         foreach (var child in @base.Elements())
         {
-            var isTricky = BTMetadata.Instance.Tricky.Contains(child.Name.LocalName);
-
-            if (isTricky)
+            if (child.IsTricky())
             {
                 tricky.Add(child.Name);
                 continue;
             }
 
-            var name = child.Name;
-            var id = child.GetBTIdentifier();
-            var isIndexed = BTMetadata.Instance.Indexed.Contains(child.Name.LocalName);
-
-            var index = isIndexed
-                ? @base.Elements(name).ToList().IndexOf(child)
-                : 0;
-
-            var modChild = isIndexed
-                ? mod.Elements(name).Skip(index).FirstOrDefault()
-                : mod.Elements(name).FirstOrDefault(e => e.GetBTIdentifier() == id);
+            var (modChild, _) = FindBaseItem(child, mod, @base);
 
             // Processed in the first loop
             if (modChild is not null)
