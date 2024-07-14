@@ -17,4 +17,10 @@
     <PackageReference Include="PowerArgs" Version="4.0.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="BTMetadata.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
