@@ -1,5 +1,7 @@
 # BTModMerger
 
+A tool to transform [Barotrauma](https://barotraumagame.com) mods into a diff-like format and reapply them to "base" files. This allows to automatically make compatibility patches for mods that override the same prefab. In theory, this can also be useful for versioning the mod source to automatically reapply it to newer versions of the same base file.
+
 ## Prerequisites
 
 To build: [.Net SDK 8](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
