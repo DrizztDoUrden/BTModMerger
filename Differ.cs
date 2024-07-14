@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
 
 namespace BTModMerger;
 
@@ -9,6 +8,11 @@ internal static class Differ
     {
         var (@base, mod) = Load(basePath, modPath);
         var output = Process(@base, basePath, mod, modPath);
+
+        var containingDir = new FileInfo(outputPath).Directory;
+        if (!containingDir!.Exists)
+            containingDir.Create();
+
         using var outputFile = File.Create(outputPath);
         output.Save(outputFile, SaveOptions.None);
     }
@@ -34,80 +38,110 @@ internal static class Differ
         if (modRoot is null)
             throw new InvalidOperationException($"Attempt to process empty file: {modPath}");
 
-        if (baseRoot.Name != modRoot.Name)
-            throw new InvalidOperationException("Attempt to make a diff from incompatible mod-base pair. E.g. jobs.xml should be provided with vanilla jobs.xml as a base file.");
+        if (baseRoot.Name != modRoot.Name && !modRoot.IsBTOverride())
+            Console.Error.WriteLine("[Warning] Attempt to make a diff from incompatible mod-base pair. E.g. jobs.xml should be provided with vanilla jobs.xml as a base file.");
 
+        _ = ProcessRootElement(baseRoot, modRoot, out var tmp, modRoot.Name.ToString());
         var output = new XDocument(
             new XElement(BTMMSchema.Elements.Diff,
                 new XAttribute(XNamespace.Xmlns + BTMMSchema.NamespaceAlias, BTMMSchema.Namespace),
                 new XAttribute(XNamespace.Xmlns + BTMMSchema.AddNamespaceAlias, BTMMSchema.AddNamespace),
                 new XAttribute(XNamespace.Xmlns + BTMMSchema.RemoveNamespaceAlias, BTMMSchema.RemoveNamespace),
-                BTMMSchema.Into(modRoot.Name.ToString(), ProcessRootElements(baseRoot, modRoot))
+                BTMMSchema.Into(modRoot.Name.ToString(), tmp)
             )
         );
         return output;
     }
 
-    private static List<XObject> ProcessRootElements(XElement baseRoot, XElement modRoot)
+    private static bool ProcessRootElement(XElement baseRoot, XElement modRoot, out List<XObject> results, string modPath, bool isOverride = false)
     {
-        var results = new List<XObject>();
-        var toAdd = new List<XElement>();
-
-        foreach (var child in modRoot.Elements())
-        {
-            if (child.Name == "Override")
-            {
-                if (ProcessOverride(baseRoot, child, out var tmp))
-                {
-                    results.AddRange(tmp);
-                }
-                continue;
-            }
-
-            var id = child.GetBTIdentifier();
-            if (id is null)
-            {
-                // This is some element group
-                results.Add(BTMMSchema.Into(child.Name.ToString(), ProcessRootElements(baseRoot.Element(child.Name) ?? baseRoot, child)));
-                continue;
-            }
-
-            toAdd.Add(child);
-        }
-
-        if (toAdd.Count > 0)
-            results.AddRange(BTMMSchema.AddElements(toAdd));
-
-        return results;
-    }
-
-    private static bool ProcessOverride(XElement @base, XElement @override, out List<XObject> results)
-    {
-        var hasSomething = false;
         results = [];
+        var hasSomething = false;
 
-        foreach (var child in @override.Elements())
+        if (modRoot.IsBTOverride())
         {
-            // For some reason BT generally allows nested overrides with no special meaning
-            if (child.Name == "Override")
+            foreach (var child in modRoot.Elements())
             {
-                if (ProcessOverride(@base, child, out var tmp))
+                var childId = child.GetBTIdentifier();
+                var childModPath = $"{modPath}/{child.Name}";
+                if (childId is not null) { childModPath += $"[@{childId}]"; }
+
+                if (ProcessRootElement(baseRoot, child, out var tmp, childModPath, true))
                 {
                     results.AddRange(tmp);
                     hasSomething = true;
                 }
-                continue;
             }
-
-            var id = child.GetBTIdentifier();
+        }
+        else
+        {
+            var id = modRoot.GetBTIdentifier();
             var childPath = id is null
-                ? child.Name.ToString()
-                : $"{child.Name}[@{id}]";
+                ? modRoot.Name.ToString()
+                : $"{modRoot.Name}[@{id}]";
 
+            if (id is null)
             {
-                if (ProcessOverridden(@base.Elements().First(e => e.GetBTIdentifier() == id), child, out var tmp))
+                // This is some element group
+                foreach (var child in modRoot.Elements())
                 {
-                    results.Add(BTMMSchema.Into(childPath, tmp));
+                    if (!isOverride)
+                    {
+                        results.AddRange(BTMMSchema.AddElements(child));
+                        hasSomething = true;
+                        continue;
+                    }
+
+                    var name = child.Name;
+                    var isIndexed = BTMetadata.Instance.Indexed.Contains(name.LocalName);
+
+                    var index = isIndexed
+                        ? baseRoot.Elements(name).ToList().IndexOf(child)
+                        : 0;
+
+                    var childId = child.GetBTIdentifier();
+                    var childModPath = $"{modPath}/{name}";
+                    if (childId is not null) { childModPath += $"[@{childId}]"; }
+                    if (isIndexed) childModPath += $"[{index}]";
+
+                    var baseChild = isIndexed
+                        ? baseRoot.Elements(name).Skip(index).SingleOrDefault()
+                        : baseRoot.Elements(name).SingleOrDefault(e => e.GetBTIdentifier() == childId);
+
+                    if (baseChild is null)
+                    {
+                        var tmp = Console.ForegroundColor;
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.Error.Write("[Warning] ");
+                        Console.ForegroundColor = tmp;
+                        Console.Error.WriteLine($"Attempt to override non-existent item at {childModPath}");
+                        results.AddRange(BTMMSchema.AddElements(child));
+                        hasSomething = true;
+                        continue;
+                    }
+                    else
+                    {
+                        if (ProcessRootElement(baseChild, child, out var tmp, childModPath, isOverride))
+                        {
+                            results.AddRange(tmp);
+                            hasSomething = true;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (isOverride)
+                {
+                    if (ProcessOverridden(baseRoot, modRoot, out var tmp))
+                    {
+                        results.Add(BTMMSchema.Into(childPath, tmp));
+                        hasSomething = true;
+                    }
+                }
+                else
+                {
+                    results.AddRange(BTMMSchema.AddElements(modRoot));
                     hasSomething = true;
                 }
             }
