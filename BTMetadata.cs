@@ -45,10 +45,15 @@ public class BTMetadata
             using var blank = File.Create(Path);
             var ret = new BTMetadata();
             serializer.Serialize(blank, ret);
+            ret.Indexed = ret.Indexed.Select(s => s.ToLower()).ToArray();
+            ret.Tricky = ret.Tricky.Select(s => s.ToLower()).ToArray();
             return ret;
         }
 
         using var file = File.OpenRead(Path);
-        return (BTMetadata)serializer.Deserialize(file)!;
+        var data = (BTMetadata)serializer.Deserialize(file)!;
+        data.Indexed = data.Indexed.Select(s => s.ToLower()).ToArray();
+        data.Tricky = data.Tricky.Select(s => s.ToLower()).ToArray();
+        return data;
     }
 }

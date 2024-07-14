@@ -47,73 +47,69 @@ internal static class Differ
                 new XAttribute(XNamespace.Xmlns + BTMMSchema.NamespaceAlias, BTMMSchema.Namespace),
                 new XAttribute(XNamespace.Xmlns + BTMMSchema.AddNamespaceAlias, BTMMSchema.AddNamespace),
                 new XAttribute(XNamespace.Xmlns + BTMMSchema.RemoveNamespaceAlias, BTMMSchema.RemoveNamespace),
-                modRoot.IsBTOverride()
-                    ? tmp
-                    : BTMMSchema.Into(modRoot.Name.ToString(), tmp)
+                tmp
             )
         );
         return output;
     }
 
-    private static bool ProcessRootElement(XElement baseRoot, XElement modRoot, out List<XObject> results, string modPath = "", bool isOverride = false)
+    private static void SewageDisposal(List<(XElement item, bool fromOverride, string path)> pile)
     {
-        var name = modRoot.Name;
-        var isIndexed = BTMetadata.Instance.Indexed.Contains(name.LocalName);
+        for (var i = 0; i < pile.Count; ++i)
+        {
+            var (item, _, path) = pile[i];
 
-        var index = isIndexed
-            ? baseRoot.Elements(name).ToList().IndexOf(modRoot)
-            : 0;
+            if (item.IsBTOverride())
+            {
+                pile.RemoveAt(i);
+                pile.AddRange(item.Elements().Select(e => (e, true, path)));
+                --i;
+            }
+        }
+    }
 
-        var id = modRoot.GetBTIdentifier();
-        var subpath = modRoot.Name.LocalName;
-        if (id is not null) { subpath += $"[@{id}]"; }
-        if (isIndexed) subpath += $"[{index}]";
-        modPath += subpath;
-
+    private static bool ProcessRootElement(XElement baseRoot, XElement modRoot, out List<XObject> results)
+    {
         results = [];
         var hasSomething = false;
+        var pile = new List<(XElement item, bool fromOverride, string path)> { (modRoot, false, "") };
 
-        if (modRoot.IsBTOverride())
+        // Removing root overrides
+        SewageDisposal(pile);
+        // Piling up items in actual roots with child overrides
+        pile = pile.SelectMany(p => p.item.Elements().Select(e => (e, p.fromOverride, p.item.Name.ToString()))).ToList();
+        // Removing child overrides
+        SewageDisposal(pile);
+        // now we have proper children that are not overrides and do not, I repeat, do not give us rectum cancer
+
+        foreach (var (child, isOverride, path) in pile)
         {
-            foreach (var child in modRoot.Elements())
+            if (!isOverride)
             {
-                if (ProcessRootElement(baseRoot, child, out var tmp, modPath, true))
-                {
-                    results.AddRange(tmp);
-                    hasSomething = true;
-                }
+                results.AddRange(BTMMSchema.AddElements(child));
+                hasSomething = true;
+                continue;
             }
 
-            return hasSomething;
-        }
+            var childName = child.Name;
+            var childId = child.GetBTIdentifier();
+            var childIsIndexed = child.IsIndexed();
 
-        if (id is null && !isIndexed)
-        {
-            // This is some element group
-            foreach (var child in modRoot.Elements())
-            {
-                var childModPath = $"{modPath}/{child.Name}";
+            var childIndex = childIsIndexed
+                ? baseRoot.Elements(childName).ToList().IndexOf(modRoot)
+                : 0;
 
-                if (ProcessRootElement(baseRoot, child, out var tmp, childModPath, true))
-                {
-                    results.AddRange(tmp);
-                    hasSomething = true;
-                }
-            }
-        }
-        else
-        {
-            if (isOverride)
+            var baseChild = childIsIndexed
+                ? baseRoot.Elements(childName).Skip(childIndex).First()
+                : baseRoot.Elements(childName).Single(e => e.GetBTIdentifier() == childId);
+
+            var childPath = $"{path}/{childName}";
+            if (childId is not null) childPath += $"[@{childId}]";
+            if (childIsIndexed) childPath += $"[{childIndex}]";
+
+            if (ProcessOverridden(baseChild, child, out var tmp))
             {
-                if (ProcessOverridden(baseRoot, modRoot, out var tmp))
-                {
-                    results.Add(BTMMSchema.Into(subpath, tmp));
-                    hasSomething = true;
-                }
-            }
-            else
-            {
-                results.AddRange(BTMMSchema.AddElements(modRoot));
+                results.Add(BTMMSchema.Into(childPath, tmp));
                 hasSomething = true;
             }
         }
