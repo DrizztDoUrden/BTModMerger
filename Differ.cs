@@ -118,7 +118,7 @@ internal static class Differ
         var hasSomething = false;
         results = [];
 
-        ProcessOverridenAttributes(@base, mod, ref results, ref hasSomething);
+        ProcessOverriddenAttributes(@base, mod, ref results, ref hasSomething);
 
         var toAdd = new List<XElement>();
         var toRemove = new List<XElement>();
