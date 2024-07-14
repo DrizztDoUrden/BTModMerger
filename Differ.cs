@@ -257,7 +257,7 @@ internal static class Differ
         return hasSomething;
     }
 
-    private static void ProcessOverridenAttributes(XElement @base, XElement mod, ref List<XElement> results, ref bool hasSomething)
+    private static void ProcessOverriddenAttributes(XElement @base, XElement mod, ref List<XElement> results, ref bool hasSomething)
     {
         foreach (var attr in mod.Attributes())
         {
