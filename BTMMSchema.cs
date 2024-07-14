@@ -5,7 +5,7 @@ namespace BTModMerger;
 public static class BTMMSchema
 {
     public static readonly string NamespaceAlias = "btmm";
-    public static readonly XNamespace Namespace = "http://mya.rse/BarotraumaModMerger";
+    public static readonly XNamespace Namespace = "https://github.com/DrizztDoUrden/BTModMerger";
 
     public static class Elements
     {
