@@ -1,21 +1,48 @@
-﻿using System;
-using System.IO;
+﻿using System.Xml;
 using System.Xml.Linq;
 
 namespace BTModMerger;
 
-sealed internal class Merger
+sealed internal class Aplyier
 {
-    public static void Apply(Stream baseFile, string modPath, Stream outputFile)
+    public static void Apply(string? basePath, string modPath, string? outputPath, bool asOverride)
     {
+        var baseFile = string.IsNullOrWhiteSpace(basePath)
+            ? Console.OpenStandardInput()
+            : File.OpenRead(basePath);
+
         var @base = XDocument.Load(baseFile, LoadOptions.None);
+
+        if (baseFile is FileStream)
+            baseFile.Dispose();
+
         var mod = LoadMod(modPath);
 
         if (mod.Root!.Name != BTMMSchema.Elements.Diff)
             throw new InvalidDataException($"Mod ({modPath}) should be in diff format.");
 
-        Apply(mod.Root!, @base, "/Diff");
-        @base.Save(outputFile);
+        var to = asOverride && !@base.Root!.HasAttributes ? new XDocument() : @base;
+        Apply(mod.Root!, @base, to, "/Diff");
+
+        if (!to.Elements().Any())
+            return;
+
+        if (!string.IsNullOrEmpty(outputPath))
+        {
+            var containingDir = new FileInfo(outputPath).Directory;
+            if (!containingDir!.Exists)
+                containingDir.Create();
+        }
+
+        var outputFile = string.IsNullOrWhiteSpace(outputPath)
+            ? Console.OpenStandardOutput()
+            : File.Create(outputPath);
+
+        using (var writer = XmlWriter.Create(outputFile, BTMMSchema.WriterSettings))
+            to.Save(writer);
+
+        if (outputFile is FileStream)
+            outputFile.Dispose();
     }
 
     private static XDocument LoadMod(string modPath)
@@ -24,7 +51,7 @@ sealed internal class Merger
         return XDocument.Load(modFile, LoadOptions.None);
     }
 
-    private static void Apply(XElement diffElement, XContainer to, string diffPath)
+    private static void Apply(XElement diffElement, XContainer from, XContainer to, string diffPath)
     {
         foreach (var child in diffElement.Elements(BTMMSchema.Elements.SetAttribute))
         {
@@ -37,19 +64,19 @@ sealed internal class Merger
         {
             var childDiffPath = $"{diffPath}/{child.Name}";
             var target = child.GetBTMMPath()!;
-            var targetElement = GetTarget(target, to, diffPath);
+            var (fromTarget, toTarget) = GetTarget(target, from, to, diffPath);
 
             foreach (var attr in child.Attributes())
             {
                 var operation = attr.Name.Namespace;
                 var attrTarget = attr.Name.LocalName;
-                if (operation == BTMMSchema.AddNamespace) { targetElement.SetAttributeValue(attrTarget, attr.Value); }
-                else if (operation == BTMMSchema.RemoveNamespace) { targetElement.Attribute(attrTarget)!.Remove(); }
+                if (operation == BTMMSchema.AddNamespace) { toTarget.SetAttributeValue(attrTarget, attr.Value); }
+                else if (operation == BTMMSchema.RemoveNamespace) { toTarget.Attribute(attrTarget)!.Remove(); }
                 else if (operation == BTMMSchema.Namespace) { /* target path, etc */ }
                 else throw new InvalidDataException($"Invalid attribute change operation (xmlns): {operation} at {childDiffPath}/{attr.Name}");
             }
 
-            Apply(child, targetElement, childDiffPath);
+            Apply(child, fromTarget, toTarget, childDiffPath);
         }
 
         var toRemove = new List<(XElement item, int amount)>();
@@ -62,8 +89,8 @@ sealed internal class Merger
 
             if (target is not null)
             {
-                var targetItem = GetTarget(target, to, diffPath);
-                toRemove.Add((targetItem, child.GetBTMMAmount()));
+                var (fromTarget, toTarget) = GetTarget(target, from, to, diffPath);
+                toRemove.Add((toTarget, child.GetBTMMAmount()));
             }
             else
             {
@@ -95,7 +122,8 @@ sealed internal class Merger
 
                 for (var i = 0; i < amount; ++i)
                     to.Add(toAdd);
-            } else if (child.Name.Namespace == BTMMSchema.RemoveNamespace)
+            }
+            else if (child.Name.Namespace == BTMMSchema.RemoveNamespace)
             {
                 var item = new XElement(child)
                 {
@@ -123,8 +151,17 @@ sealed internal class Merger
     {
         var start = from.IndexOf('[');
         if (start < 0) return (-1, -1);
-        var end = from.IndexOf(']');
+        var end = from.IndexOfAny(['[', ']'], start + 1);
+
         if (end < 0) throw new InvalidDataException("Missing ']' character in a path subscript operator.");
+
+        var level = from[end] == '[' ? 2 : 0;
+        while (level > 0)
+        {
+            end = from.IndexOfAny(['[', ']'], end + 1);
+            level += from[end] == '[' ? 1 : -1;
+        }
+
         return (start, end);
     }
 
@@ -156,10 +193,13 @@ sealed internal class Merger
         return elements.Skip(idx).Take(1);
     }
 
-    private static XElement GetTarget(string target, XContainer from, string diffPath)
+    private static (XContainer from, XElement to) GetTarget(string target, XContainer from, XContainer to, string diffPath)
     {
         var parts = target.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var targetElement = from;
+        XElement? targetElement = null;
+
+        if (to is XDocument)
+            to = to.Element(BTMMSchema.Elements.Override) ?? to;
 
         foreach (var part in parts)
         {
@@ -168,17 +208,64 @@ sealed internal class Merger
             var ss0 = ExtractSubscript(ref partCopy, diffPath);
             var ss1 = ExtractSubscript(ref partCopy, diffPath);
 
-            var elems = targetElement.Elements(partCopy);
-            elems = FilterBySubscript(elems, ss0, diffPath);
-            elems = FilterBySubscript(elems, ss1, diffPath);
-            var array = elems.ToArray();
+            var fromElems = from.Elements(partCopy);
+            fromElems = FilterBySubscript(fromElems, ss0, diffPath);
+            fromElems = FilterBySubscript(fromElems, ss1, diffPath);
+            var fromArray = fromElems.Take(2).ToArray();
 
-            if (array.Length != 1)
+            if (fromArray.Length != 1)
                 throw new InvalidDataException($"A subscript has produced zero or more than one result at {diffPath}");
 
-            targetElement = array[0];
+            var fromItem = fromArray[0];
+
+            if (from != to)
+            {
+                var toElems = new[]
+                    {
+                        to.Elements(partCopy),
+                        to.Elements(BTMMSchema.Elements.Override).SelectMany(e => e.Elements(partCopy)),
+                    }
+                    .SelectMany(e => e);
+
+                toElems = FilterBySubscript(toElems, ss0, diffPath);
+                toElems = FilterBySubscript(toElems, ss1, diffPath);
+                var toArray = toElems.Take(2).ToArray();
+
+                if (toArray.Length == 1)
+                {
+                    targetElement = toArray[0];
+                    to = targetElement;
+                }
+                else
+                {
+                    // Means we are in override mode
+                    if (to is XDocument)
+                    {
+                        targetElement = new(fromItem.Name);
+                        to.Add(new XElement(BTMMSchema.Elements.Override, targetElement));
+                        to = targetElement;
+                    }
+                    else
+                    {
+                        targetElement = new(fromItem);
+                        to.Add(targetElement);
+                        to = targetElement;
+                        fromItem = targetElement;
+                    }
+                }
+            }
+            else
+            {
+                targetElement = fromItem;
+                to = fromItem;
+            }
+
+            from = fromItem;
         }
 
-        return (XElement)targetElement;
+        if (targetElement is null)
+            throw new InvalidDataException("Empty paths are not supported");
+
+        return (from, targetElement);
     }
 }

@@ -1,47 +1,61 @@
-﻿using System.Xml.Linq;
+﻿using System.Xml;
+using System.Xml.Linq;
 
 namespace BTModMerger;
 
 internal static class Differ
 {
-    public static void Apply(string basePath, string modPath, string outputPath)
+    public static void Apply(string? basePath, string modPath, string outputPath, bool alwaysOverride)
     {
         var (@base, mod) = Load(basePath, modPath);
-        var output = Process(@base, basePath, mod, modPath);
+        var output = Process(@base, basePath, mod, modPath, alwaysOverride);
 
         var containingDir = new FileInfo(outputPath).Directory;
         if (!containingDir!.Exists)
             containingDir.Create();
 
         using var outputFile = File.Create(outputPath);
-        output.Save(outputFile, SaveOptions.None);
+        using (var writer = XmlWriter.Create(outputFile, BTMMSchema.WriterSettings))
+            output.Save(writer);
     }
 
-    private static (XDocument @base, XDocument mod) Load(string basePath, string modPath)
+    private static (XDocument @base, XDocument mod) Load(string? basePath, string modPath)
     {
-        using var baseFile = File.OpenRead(basePath);
-        using var modFile = File.OpenRead(modPath);
+        XDocument @base;
 
-        var @base = XDocument.Load(baseFile, LoadOptions.None);
+        if (basePath is null)
+        {
+            @base = XDocument.Load(Console.OpenStandardInput(), LoadOptions.None);
+        }
+        else
+        {
+            using var baseFile = File.OpenRead(basePath);
+            @base = XDocument.Load(baseFile, LoadOptions.None);
+        }
+
+        using var modFile = File.OpenRead(modPath);
         var mod = XDocument.Load(modFile, LoadOptions.None);
 
         return (@base, mod);
     }
 
-    private static XDocument Process(XDocument @base, string basePath, XDocument mod, string modPath)
+    private static XDocument Process(XDocument @base, string? basePath, XDocument mod, string modPath, bool alwaysOverride)
     {
         var baseRoot = @base.Root;
         var modRoot = mod.Root;
 
         if (baseRoot is null)
-            throw new InvalidOperationException($"Attempt to process empty file: {basePath}");
+            throw new InvalidOperationException($"Attempt to process empty file: {basePath ?? "cin"}");
         if (modRoot is null)
             throw new InvalidOperationException($"Attempt to process empty file: {modPath}");
+
+        if (baseRoot.IsBTOverride() && baseRoot.Elements().Take(2).Count() == 1)
+            baseRoot = baseRoot.Elements().First();
 
         if (baseRoot.Name != modRoot.Name && !modRoot.IsBTOverride())
             Console.Error.WriteLine("[Warning] Attempt to make a diff from incompatible mod-base pair. E.g. jobs.xml should be provided with vanilla jobs.xml as a base file.");
 
-        _ = ProcessRootElement(baseRoot, modRoot, out var tmp);
+        _ = ProcessRootElement(baseRoot, modRoot, out var tmp, alwaysOverride);
         var output = new XDocument(
             new XElement(BTMMSchema.Elements.Diff,
                 new XAttribute(XNamespace.Xmlns + BTMMSchema.NamespaceAlias, BTMMSchema.Namespace),
@@ -68,55 +82,90 @@ internal static class Differ
         }
     }
 
-    private static (XElement? toItem, string path) FindBaseItem(XElement element, XElement toContainer, XElement fromContainer, string path = "")
+    private static (XElement? toItem, string path) FindBaseItem(XElement element, XElement toContainer, XElement fromContainer, string root = "")
     {
         var childName = element.Name;
         var targets = toContainer.Elements(childName).ToArray();
+        var fromItems = fromContainer.Elements(childName);
 
-        var childId = element.GetBTIdentifier();
-        var childIsIndexed = element.IsIndexed() || childId is null && targets.Length > 1 || childId is not null && targets.Count(e => e.GetBTIdentifier() == childId) > 1;
+        var elementId = element.GetBTIdentifier();
+        var elementIsIndexed = element.IsIndexed() || elementId is null && targets.Length > 1 || elementId is not null && targets.Count(e => e.GetBTIdentifier() == elementId) > 1;
 
-        var childIndex = -1;
+        var elementIndex = -1;
 
-        if (childIsIndexed)
+        if (elementId is not null)
         {
-            childIndex = fromContainer.Elements(childName).ToList().IndexOf(element);
-            targets = targets.Skip(childIndex).Take(1).ToArray();
-        }
-        else
-        {
-            if (childId is not null)
-                targets = targets.Where(t => t.GetBTIdentifier() == childId).ToArray();
+            targets = targets.Where(t => t.GetBTIdentifier() == elementId).ToArray();
+            fromItems = fromItems.Where(t => t.GetBTIdentifier() == elementId);
         }
 
-        var toChild = targets.FirstOrDefault();
+        if (elementIsIndexed)
+        {
+            elementIndex = Array.IndexOf(fromItems.ToArray(), element);
+            if (elementIndex > -1)
+                targets = targets.Skip(elementIndex).Take(1).ToArray();
+        }
 
-        var childPath = string.IsNullOrEmpty(path) ? childName.ToString() : $"{path}/{childName}";
-        if (childId is not null) childPath += $"[@{childId}]";
-        if (childIsIndexed) childPath += $"[{childIndex}]";
+        var toElement = targets.FirstOrDefault();
+        var elementPath = FormPath(childName.ToString(), elementId, elementIndex, root);
 
-        return (toChild, childPath);
+        if (toElement == null && element == fromContainer || fromContainer.IsBTOverride() && fromContainer.Elements().Take(2).Count() == 1 && fromContainer.Elements().First() == element)
+            toElement = toContainer;
+
+        return (toElement, elementPath);
     }
 
-    private static bool ProcessRootElement(XElement baseRoot, XElement modRoot, out List<XObject> results)
+    private static string FormPath(string childName, string? childId, int childIndex, string root = "")
+    {
+        var childPath = string.IsNullOrEmpty(root) ? childName.ToString() : $"{root}/{childName}";
+        if (childId is not null) childPath += $"[@{childId}]";
+        if (childIndex != -1) childPath += $"[{childIndex}]";
+        return childPath;
+    }
+
+    private static bool ProcessRootElement(XElement baseRoot, XElement modRoot, out List<XObject> results, bool alwaysOverride)
     {
         results = [];
         var hasSomething = false;
+
         var pile = new List<(XElement item, bool fromOverride, string path)> { (modRoot, false, "") };
 
         // Removing root overrides
         SewageDisposal(pile);
+
         // Piling up items in actual roots with child overrides
-        pile = pile.SelectMany(p => p.item.Elements().Select(e => (e, p.fromOverride, p.item.Name.ToString()))).ToList();
+        pile = pile
+            .SelectMany(p
+                => p.item.HasAttributes
+                    ? [p]
+                    : p.item.Elements()
+                        .Select(e
+                            => (e, p.fromOverride, FormPath(p.item.Name.ToString(), p.item.GetBTIdentifier(), -1)))
+            ).ToList();
+
         // Removing child overrides
         SewageDisposal(pile);
+
         // now we have proper children that are not overrides and do not, I repeat, do not give us rectum cancer
+
+        if (pile.Count == 1 && (pile[0].fromOverride || pile[0].item == modRoot) && pile[0].item.HasAttributes)
+        {
+            modRoot = pile[0].item;
+
+            if (ProcessOverridden(baseRoot, modRoot, out var tmp))
+            {
+                results.Add(BTMMSchema.Into(FormPath(modRoot.Name.ToString(), modRoot.GetBTIdentifier(), -1), tmp));
+                hasSomething = true;
+            }
+
+            return hasSomething;
+        }
 
         var justAdd = new Dictionary<string, List<XElement>>();
 
         foreach (var (child, isOverride, path) in pile)
         {
-            if (!isOverride)
+            if (!isOverride && !alwaysOverride)
             {
                 if (!justAdd.TryGetValue(path, out var list))
                 {

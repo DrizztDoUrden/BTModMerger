@@ -1,9 +1,17 @@
-﻿using System.Xml.Linq;
+﻿using System.Xml;
+using System.Xml.Linq;
 
 namespace BTModMerger;
 
 public static class BTMMSchema
 {
+    public static readonly XmlWriterSettings WriterSettings = new()
+    {
+        CloseOutput = false,
+        NewLineOnAttributes = false,
+        Indent = true,
+    };
+
     public static readonly string NamespaceAlias = "btmm";
     public static readonly XNamespace Namespace = "https://github.com/DrizztDoUrden/BTModMerger";
 
@@ -15,6 +23,8 @@ public static class BTMMSchema
 
     public static class Elements
     {
+        public static readonly XName Override = nameof(Override);
+
         public static readonly XName Diff = Namespace + nameof(Diff);
         public static readonly XName Into = Namespace + nameof(Into);
         public static readonly XName AddElements = Namespace + nameof(AddElements);
@@ -47,7 +57,7 @@ public static class BTMMSchema
     public static IEnumerable<XElement> RemoveElements(IEnumerable<XElement> targets)
         => targets
             .Select(target => new XElement(target)
-            { 
+            {
                 Name = RemoveNamespace + target.Name.LocalName
             });
 

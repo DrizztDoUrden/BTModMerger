@@ -8,13 +8,14 @@ public class BTMetadata
 
     public string[] Indexed { get; set; } =
     {
-        "ItemSet",
-        "sprite",
+    };
+
+    public string[] Indexes { get; set; } =
+    {
     };
 
     public string[] Tricky { get; set; } =
     {
-        "Item",
     };
 
     public static BTMetadata Instance

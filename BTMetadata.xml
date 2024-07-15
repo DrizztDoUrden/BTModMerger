@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <BTMetadata xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <Indexed>
-  </Indexed>
-  <Tricky>
-  </Tricky>
+	<Indexed>
+		<string>Item</string>
+		<string>ItemSet</string>
+		<string>sprite</string>
+		<string>texture</string>
+		<string>Description</string>
+		<string>damagemodifier</string>
+	</Indexed>
+	<Indexes>
+	</Indexes>
+	<Tricky>
+		<string>AbilityGroupInterval</string>
+		<string>AbilityGroupEffect</string>
+	</Tricky>
 </BTMetadata>

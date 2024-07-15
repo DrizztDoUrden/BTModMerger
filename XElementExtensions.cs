@@ -16,18 +16,25 @@ internal static class XElementExtensions
         {
             if (CompareCIS(element.Name.LocalName, "character"))
             {
-                return element.GetBTAttributeCIS("group") ?? "btmm::-"
-                    + ":"
-                    + element.GetBTAttributeCIS("speciesname") ?? "btmm::-";
-
+                var group = element.GetBTAttributeCIS("group") ?? "btmm::-";
+                var species = element.GetBTAttributeCIS("speciesname") ?? "btmm::-";
+                return $"{group}:{species}";
             }
+            if (CompareCIS(element.Name.LocalName, "addedrecipe"))
+                return element.GetBTAttributeCIS("itemidentifier") ?? "btmm::-";
+            if (CompareCIS(element.Name.LocalName, "replace"))
+                return element.GetBTAttributeCIS("tag") ?? "btmm::-";
+            if (CompareCIS(element.Name.LocalName, "limb"))
+                return element.GetBTAttributeCIS("name") ?? "btmm::-";
+            if (CompareCIS(element.Name.LocalName, "joint"))
+                return element.GetBTAttributeCIS("name") ?? "btmm::-";
         }
 
         return element.Attribute("identifier")?.Value;
     }
 
     public static string? GetBTAttributeCIS(this XElement element, string name)
-        => element.Attributes().FirstOrDefault(attr => CompareCIS(attr.Name.LocalName, "group"))?.Value;
+        => element.Attributes().FirstOrDefault(attr => CompareCIS(attr.Name.LocalName, name))?.Value;
 
     private static bool CompareCIS(string l, string r)
         => l.Equals(r, StringComparison.CurrentCultureIgnoreCase);
