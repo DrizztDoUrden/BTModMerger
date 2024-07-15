@@ -27,10 +27,10 @@ Show usage description like this.
 
 Transform a mod to moddiff format.
 
-* base           Path to the base file mod will be diffed from.
-* mod            Path to the mod file.
-* output         Path to a file to store result into. If not provided, defaults to base.moddiff. Optional.
-* alwaysOverride Interpret all elements as if they are inside of an override block. Somewhat useful for comparing mods. Optional.
+* base           - Path to the base file mod will be diffed from.
+* mod            - Path to the mod file.
+* output         - Path to a file to store result into. If not provided, defaults to base.moddiff. Optional.
+* alwaysOverride - Interpret all elements as if they are inside of an override block. Somewhat useful for comparing mods. Optional.
 
 ```
 > BTModMerger Apply [base] mod [output] [-asOverride]
@@ -38,10 +38,10 @@ Transform a mod to moddiff format.
 
 Apply a mod in moddiff format to a base file. Can be done repeatedly.
 
-* base      Path to the base file mod will be applied to. Optional. If not provided, cin would be used.
-* mod       Path to the mod file.
-* output    Path to a file to store result into. Optional. If not provided, cout would be used.
-* override  Whether to generate a file with just overrides and additions (aka a mod) rather than all info. Optional, default: false.
+* base      - Path to the base file mod will be applied to. Optional. If not provided, cin would be used.
+* mod       - Path to the mod file.
+* output    - Path to a file to store result into. Optional. If not provided, cout would be used.
+* override  - Whether to generate a file with just overrides and additions (aka a mod) rather than all info. Optional, default: false.
 
 ```
 > BTModMerger Indent [input] [output]
@@ -49,12 +49,12 @@ Apply a mod in moddiff format to a base file. Can be done repeatedly.
 
 Indent an XML file.
 
-* input    Path to a file to indent. If not provided, cin would be used.
-* output   Path to a file to store result into. If not provided, cout would be used.
+* input    - Path to a file to indent. If not provided, cin would be used.
+* output   - Path to a file to store result into. If not provided, cout would be used.
 
 ## Universal options, aka what can be added to any command
 
-* PathToMetadata Path to a metadata file. Defaults to: exe_dir/BTMetadata.xml. If unset would be generated if missing.
+* PathToMetadata - Path to a metadata file. Defaults to: exe_dir/BTMetadata.xml. If unset would be generated if missing.
 
 ## Example of usage
 
