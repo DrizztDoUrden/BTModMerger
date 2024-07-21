@@ -222,17 +222,24 @@ sealed internal class Aplyier
                     // Means we are in override mode
                     if (to is XDocument)
                     {
-                        targetElement = new(fromItem);
+                        targetElement = new(fromItem.Name);
                         to.Add(new XElement(Elements.Override, targetElement));
                         to = targetElement;
-                        fromItem = targetElement;
                     }
                     else
                     {
-                        targetElement = new(fromItem);
+                        if (to is XElement toElement && toElement.Name == Elements.Override)
+                        {
+                            targetElement = new(fromItem.Name);
+                        }
+                        else
+                        {
+                            targetElement = new(fromItem);
+                            fromItem = targetElement;
+                        }
+
                         to.Add(targetElement);
                         to = targetElement;
-                        fromItem = targetElement;
                     }
                 }
             }
