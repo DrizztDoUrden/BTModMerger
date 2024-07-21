@@ -59,8 +59,8 @@ sealed internal class Aplyier
             {
                 var operation = attr.Name.Namespace;
                 var attrTarget = attr.Name.LocalName;
-                if (operation == AddNamespace) { toTarget.SetAttributeValue(attrTarget, attr.Value); }
-                else if (operation == RemoveNamespace) { toTarget.Attribute(attrTarget)!.Remove(); }
+                if (operation == AddNamespace) { toTarget.SetAttributeCIS(attrTarget, attr.Value); }
+                else if (operation == RemoveNamespace) { toTarget.FindBTAttributeCIS(attrTarget)!.Remove(); }
                 else if (operation == Namespace) { /* target path, etc */ }
                 else throw new InvalidDataException($"Invalid attribute change operation (xmlns): {operation} at {childDiffPath}.{attr.Name.Fancify()}");
             }
@@ -220,27 +220,26 @@ sealed internal class Aplyier
                 else
                 {
                     // Means we are in override mode
-                    if (to is XDocument)
+                    if (to is XDocument && !fromItem.HasAttributes)
+                    {
+                        var @override = new XElement(Elements.Override);
+                        to.Add(@override);
+                        to = @override;
+                    }
+
+                    if (to is XElement toElement && toElement.Name == Elements.Override && !fromItem.HasAttributes)
                     {
                         targetElement = new(fromItem.Name);
-                        to.Add(new XElement(Elements.Override, targetElement));
-                        to = targetElement;
                     }
                     else
                     {
-                        if (to is XElement toElement && toElement.Name == Elements.Override)
-                        {
-                            targetElement = new(fromItem.Name);
-                        }
-                        else
-                        {
-                            targetElement = new(fromItem);
-                            fromItem = targetElement;
-                        }
-
-                        to.Add(targetElement);
-                        to = targetElement;
+                        targetElement = new(fromItem);
+                        fromItem = targetElement;
                     }
+
+                    to.Add(targetElement);
+                    to = targetElement;
+
                 }
             }
 

@@ -15,6 +15,9 @@ internal static class XElementExtensions
     public static string? GetBTAttributeCIS(this XElement element, XName name)
         => element.Attributes().FirstOrDefault(attr => attr.Name.Namespace == name.Namespace && CompareCIS(attr.Name.LocalName, name.LocalName))?.Value;
 
+    public static XAttribute? FindBTAttributeCIS(this XElement element, XName name)
+        => element.Attributes().FirstOrDefault(attr => attr.Name.Namespace == name.Namespace && CompareCIS(attr.Name.LocalName, name.LocalName));
+
     private static bool CompareCIS(string l, string r)
         => l.Equals(r, StringComparison.CurrentCultureIgnoreCase);
 
@@ -24,4 +27,34 @@ internal static class XElementExtensions
     public static bool IsIndexed(this XElement element)
         => BTMetadata.Instance.Indexed.Contains(element.Name.LocalName.ToLower())
             || element.IsTricky();
+
+    public static void SetAttributeCIS(this XElement target, string name, object value)
+    {
+        var attr = target.FindBTAttributeCIS(name);
+
+        if (attr is not null)
+        {
+            attr.Value = value.ToString()!;
+            return;
+        }
+
+        target.SetAttributeValue(name, value);
+    }
+
+    public static void SetAttributeSorting(this XElement target, XName name, object value)
+    {
+        var attrs = target.Attributes()
+            .Where(attr => attr.Name != name)
+            .ToArray();
+
+        var btmmAtrrs = attrs.Where(attr => attr.Name.Namespace != XNamespace.None).ToArray();
+        var btAtrrs = attrs.Where(attr => attr.Name.Namespace == XNamespace.None).ToArray();
+
+        target.RemoveAttributes();
+        target.SetAttributeValue(name, value.ToString());
+        foreach (var attr in btmmAtrrs)
+            target.SetAttributeValue(attr.Name, attr.Value);
+        foreach (var attr in btAtrrs)
+            target.SetAttributeValue(attr.Name, attr.Value);
+    }
 }

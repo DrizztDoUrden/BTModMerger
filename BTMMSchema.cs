@@ -109,21 +109,4 @@ public static class BTMMSchema
             new XAttribute(XNamespace.Xmlns + NamespaceAlias, Namespace),
             children
         );
-
-    public static void SetAttributeSorting(this XElement target, XName name, object value)
-    {
-        var attrs = target.Attributes()
-            .Where(attr => attr.Name != name)
-            .ToArray();
-
-        var btmmAtrrs = attrs.Where(attr => attr.Name.Namespace != XNamespace.None).ToArray();
-        var btAtrrs = attrs.Where(attr => attr.Name.Namespace == XNamespace.None).ToArray();
-
-        target.RemoveAttributes();
-        target.SetAttributeValue(name, value.ToString());
-        foreach (var attr in btmmAtrrs)
-            target.SetAttributeValue(attr.Name, attr.Value);
-        foreach (var attr in btAtrrs)
-            target.SetAttributeValue(attr.Name, attr.Value);
-    }
 }
