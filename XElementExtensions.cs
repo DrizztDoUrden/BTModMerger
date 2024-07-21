@@ -10,31 +10,10 @@ internal static class XElementExtensions
     public static string? GetBTMMPath(this XElement element) => element.Attribute(BTMMSchema.Attributes.Path)?.Value;
     public static string? GetBTMMValue(this XElement element) => element.Attribute(BTMMSchema.Attributes.Value)?.Value;
 
-    public static string? GetBTIdentifier(this XElement element)
-    {
-        if (element.Name.Namespace == XNamespace.None)
-        {
-            if (CompareCIS(element.Name.LocalName, "character"))
-            {
-                var group = element.GetBTAttributeCIS("group") ?? "btmm::-";
-                var species = element.GetBTAttributeCIS("speciesname") ?? "btmm::-";
-                return $"{group}:{species}";
-            }
-            if (CompareCIS(element.Name.LocalName, "addedrecipe"))
-                return element.GetBTAttributeCIS("itemidentifier") ?? "btmm::-";
-            if (CompareCIS(element.Name.LocalName, "replace"))
-                return element.GetBTAttributeCIS("tag") ?? "btmm::-";
-            if (CompareCIS(element.Name.LocalName, "limb"))
-                return element.GetBTAttributeCIS("name") ?? "btmm::-";
-            if (CompareCIS(element.Name.LocalName, "joint"))
-                return element.GetBTAttributeCIS("name") ?? "btmm::-";
-        }
+    public static string? GetBTIdentifier(this XElement element) => BTMetadata.Instance.GetId(element);
 
-        return element.Attribute("identifier")?.Value;
-    }
-
-    public static string? GetBTAttributeCIS(this XElement element, string name)
-        => element.Attributes().FirstOrDefault(attr => CompareCIS(attr.Name.LocalName, name))?.Value;
+    public static string? GetBTAttributeCIS(this XElement element, XName name)
+        => element.Attributes().FirstOrDefault(attr => attr.Name.Namespace == name.Namespace && CompareCIS(attr.Name.LocalName, name.LocalName))?.Value;
 
     private static bool CompareCIS(string l, string r)
         => l.Equals(r, StringComparison.CurrentCultureIgnoreCase);

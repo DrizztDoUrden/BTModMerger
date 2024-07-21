@@ -1,17 +1,88 @@
 <?xml version="1.0" encoding="utf-8"?>
 <BTMetadata xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
 	<Indexed>
-		<string>Item</string>
+		<!--things that should be indexed even when there is only one copy just to be safe-->
 		<string>ItemSet</string>
-		<string>sprite</string>
-		<string>texture</string>
+		<string>Sprite</string>
+		<string>Texture</string>
 		<string>Description</string>
-		<string>damagemodifier</string>
+		<string>DamageModifier</string>
+		<string>Containable</string>
+		<string>SubContainer</string>
+		<string>Inventory</string>
+		<string>Wearable</string>
 	</Indexed>
 	<Indexes>
+		<!--not yet implemented. whine on GH or something if you need/want it. it may or may not help-->
 	</Indexes>
 	<Tricky>
+		<!--this are items that should be copied to diff completely and deeply comapred rather than indexed-->
 		<string>AbilityGroupInterval</string>
 		<string>AbilityGroupEffect</string>
+		<string>Item</string>
+		<string>StatusEffect</string>
+		<string>Affliction</string>
+		<string>SlotIcon</string>
+		<string>Fabricate</string>
 	</Tricky>
+	<IndexByFilename>
+		<!--things that should be indexed by filename when diffed from or applied to a fused base file-->
+		<string>HumanCrouch</string>
+		<string>HumanRun</string>
+		<string>HumanSwimFast</string>
+		<string>HumanSwimSlow</string>
+		<string>HumanWalk</string>
+	</IndexByFilename>
+	<Partial>
+		<!--things that should have their content fused-->
+		<string>Items</string>
+		<string>Afflictions</string>
+		<string>Talents</string>
+		<string>NPCSets</string>
+	</Partial>
+	<IdMappings>
+		<IdMapping>
+			<Element>Character</Element>
+			<Ids>
+				<string>Group</string>
+				<string>SpeciesName</string>
+			</Ids>
+		</IdMapping>
+		<IdMapping>
+			<Element>AddedRecipe</Element>
+			<Ids>
+				<string>ItemIdentifier</string>
+			</Ids>
+		</IdMapping>
+		<IdMapping>
+			<Element>Replace</Element>
+			<Ids>
+				<string>Tag</string>
+			</Ids>
+		</IdMapping>
+		<IdMapping>
+			<Element>Limb</Element>
+			<Ids>
+				<string>Name</string>
+			</Ids>
+		</IdMapping>
+		<IdMapping>
+			<Element>Joint</Element>
+			<Ids>
+				<string>Name</string>
+			</Ids>
+		</IdMapping>
+		<IdMapping>
+			<Element>Var</Element>
+			<Ids>
+				<string>Var</string>
+			</Ids>
+		</IdMapping>
+		<IdMapping>
+			<Element>Ragdoll</Element>
+			<Ids>
+				<string>Type</string>
+			</Ids>
+		</IdMapping>
+	</IdMappings>
 </BTMetadata>

@@ -1,4 +1,5 @@
-﻿using System.Xml;
+﻿using System.IO;
+using System.Xml;
 using System.Xml.Linq;
 
 namespace BTModMerger;
@@ -27,10 +28,10 @@ public static class BTMMSchema
 
         public static readonly XName Diff = Namespace + nameof(Diff);
         public static readonly XName Into = Namespace + nameof(Into);
-        public static readonly XName AddElements = Namespace + nameof(AddElements);
-        public static readonly XName RemoveElements = Namespace + nameof(RemoveElements);
-        public static readonly XName SetAttribute = Namespace + nameof(SetAttribute);
-        public static readonly XName RemoveAttribute = Namespace + nameof(RemoveAttribute);
+        public static readonly XName UpdateAttributes = Namespace + nameof(UpdateAttributes);
+        public static readonly XName RemoveElement = Namespace + nameof(RemoveElement);
+
+        public static readonly XName FusedBase = Namespace + nameof(FusedBase);
     }
 
     public static class Attributes
@@ -38,19 +39,21 @@ public static class BTMMSchema
         public static readonly XName Path = Namespace + nameof(Path);
         public static readonly XName Value = Namespace + nameof(Value);
         public static readonly XName Amount = Namespace + nameof(Amount);
+        public static readonly XName File = Namespace + nameof(File);
     }
 
-    public static XElement RemoveElement(string path) => new(Elements.RemoveElements,
+    public static XElement RemoveElement(string path) => new(Elements.RemoveElement,
         new XAttribute(Attributes.Path, path)
     );
 
-    public static XElement RemoveElement(int amount, XElement child)
+    public static XElement RemoveElement(string path, int amount, XElement child)
     {
         var ret = new XElement(child)
         {
             Name = RemoveNamespace + child.Name.LocalName,
         };
-        if (amount != 1) { ret.SetAttributeValue(Attributes.Amount, amount); }
+        if (!string.IsNullOrEmpty(path)) ret.SetAttributeSorting(Attributes.Path, path);
+        if (amount != 1) { ret.SetAttributeSorting(Attributes.Amount, amount); }
         return ret;
     }
 
@@ -63,21 +66,64 @@ public static class BTMMSchema
 
     public static IEnumerable<XElement> RemoveElements(params XElement[] targets) => RemoveElements(targets.AsEnumerable());
 
+    public static XElement Into(string path, params XObject[] children) => Into(path, children.AsEnumerable());
     public static XElement Into(string path, IEnumerable<XObject> children) => new(Elements.Into,
         new XAttribute(Attributes.Path, path),
         children
     );
 
-    public static IEnumerable<XElement> AddElements(params XElement[] children) => AddElements(children.AsEnumerable());
-    public static IEnumerable<XElement> AddElements(IEnumerable<XElement> children) => children;
+    public static IEnumerable<XElement> AddElements(string path, params XElement[] children) => AddElements(path, children.AsEnumerable());
+    public static IEnumerable<XElement> AddElements(string path, IEnumerable<XElement> children)
+        => children
+            .Select(item =>
+            {
+                var copy = new XElement(item);
+                if (!string.IsNullOrEmpty(path))
+                    copy.SetAttributeSorting(Attributes.Path, path);
+                return copy;
+            });
 
-    public static XElement AddElements(int amount, XElement child)
+    public static XElement AddElements(string path, int amount, XElement child)
     {
         var ret = new XElement(child);
-        ret.SetAttributeValue(Attributes.Amount, amount);
+        if (!string.IsNullOrEmpty(path)) ret.SetAttributeSorting(Attributes.Path, path);
+        if (amount != 1) ret.SetAttributeSorting(Attributes.Amount, amount);
         return ret;
     }
 
     public static XAttribute SetAttribute(string name, string? value) => new(AddNamespace + name, value ?? "");
     public static XAttribute RemoveAttribute(string name) => new(RemoveNamespace + name, "");
+
+    public static XElement UpdateAttributes() => new(Elements.UpdateAttributes);
+
+    public static XElement Diff(params object[] children)
+        => new(Elements.Diff,
+            new XAttribute(XNamespace.Xmlns + NamespaceAlias, Namespace),
+            new XAttribute(XNamespace.Xmlns + AddNamespaceAlias, AddNamespace),
+            new XAttribute(XNamespace.Xmlns + RemoveNamespaceAlias, RemoveNamespace),
+            children
+        );
+
+    public static XElement FusedBase(params object[] children)
+        => new(Elements.FusedBase,
+            new XAttribute(XNamespace.Xmlns + NamespaceAlias, Namespace),
+            children
+        );
+
+    public static void SetAttributeSorting(this XElement target, XName name, object value)
+    {
+        var attrs = target.Attributes()
+            .Where(attr => attr.Name != name)
+            .ToArray();
+
+        var btmmAtrrs = attrs.Where(attr => attr.Name.Namespace != XNamespace.None).ToArray();
+        var btAtrrs = attrs.Where(attr => attr.Name.Namespace == XNamespace.None).ToArray();
+
+        target.RemoveAttributes();
+        target.SetAttributeValue(name, value.ToString());
+        foreach (var attr in btmmAtrrs)
+            target.SetAttributeValue(attr.Name, attr.Value);
+        foreach (var attr in btAtrrs)
+            target.SetAttributeValue(attr.Name, attr.Value);
+    }
 }

@@ -1,6 +1,8 @@
 ﻿using System.Xml.Linq;
 using System.Xml.Schema;
 
+using BTModMerger;
+
 // Taken mostly from https://stackoverflow.com/a/13048775/6078677
 static class XElementComparator
 {
@@ -34,6 +36,32 @@ static class XElementComparator
             }
 
             ret.Add((tmp[outerIndex].item, count));
+        }
+
+        return ret;
+    }
+
+    public static List<(XElement item, XContainer container, int count, XElement request)> Deduplicate(this IEnumerable<(XElement item, XContainer container, int count, XElement request)> items)
+    {
+        var ret = new List<(XElement item, XContainer container, int count, XElement request)>();
+        var tmp = items.ToList();
+
+        for (var outerIndex = 0; outerIndex < tmp.Count; ++outerIndex)
+        {
+            var count = tmp[outerIndex].count;
+
+            for (var innerIndex = outerIndex + 1; innerIndex < tmp.Count; ++innerIndex)
+            {
+                if (tmp[outerIndex].request.GetBTMMPath() == tmp[innerIndex].request.GetBTMMPath() &&
+                    XNode.DeepEquals(tmp[outerIndex].item, tmp[innerIndex].item))
+                {
+                    count += tmp[innerIndex].count;
+                    tmp.RemoveAt(innerIndex);
+                    --innerIndex;
+                }
+            }
+
+            ret.Add((tmp[outerIndex].item, tmp[outerIndex].container, count, tmp[outerIndex].request));
         }
 
         return ret;

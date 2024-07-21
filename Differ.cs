@@ -1,22 +1,25 @@
-﻿using System.Xml;
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
+
+using static BTModMerger.BTMMSchema;
+using static BTModMerger.ToolBase;
 
 namespace BTModMerger;
 
 internal static class Differ
 {
-    public static void Apply(string? basePath, string modPath, string outputPath, bool alwaysOverride)
+    public static void Apply(string? basePath, string modPath, string? outputPath, bool alwaysOverride, bool delinearize)
     {
         var (@base, mod) = Load(basePath, modPath);
         var output = Process(@base, basePath, mod, modPath, alwaysOverride);
 
-        var containingDir = new FileInfo(outputPath).Directory;
-        if (!containingDir!.Exists)
-            containingDir.Create();
-
-        using var outputFile = File.Create(outputPath);
-        using (var writer = XmlWriter.Create(outputFile, BTMMSchema.WriterSettings))
-            output.Save(writer);
+        if (output.Root!.HasElements)
+        {
+            if (delinearize)
+                output = Delinearizer.Apply(output, "temporary");
+            SaveResult(outputPath, output);
+        }
+        else if (File.Exists(outputPath))
+            File.Delete(outputPath);
     }
 
     private static (XDocument @base, XDocument mod) Load(string? basePath, string modPath)
@@ -52,31 +55,25 @@ internal static class Differ
         if (baseRoot.IsBTOverride() && baseRoot.Elements().Take(2).Count() == 1)
             baseRoot = baseRoot.Elements().First();
 
-        if (baseRoot.Name != modRoot.Name && !modRoot.IsBTOverride())
+        if (baseRoot.Name != modRoot.Name && !modRoot.IsBTOverride() && baseRoot.Name != Elements.FusedBase)
             Console.Error.WriteLine("[Warning] Attempt to make a diff from incompatible mod-base pair. E.g. jobs.xml should be provided with vanilla jobs.xml as a base file.");
 
-        _ = ProcessRootElement(baseRoot, modRoot, out var tmp, alwaysOverride);
-        var output = new XDocument(
-            new XElement(BTMMSchema.Elements.Diff,
-                new XAttribute(XNamespace.Xmlns + BTMMSchema.NamespaceAlias, BTMMSchema.Namespace),
-                new XAttribute(XNamespace.Xmlns + BTMMSchema.AddNamespaceAlias, BTMMSchema.AddNamespace),
-                new XAttribute(XNamespace.Xmlns + BTMMSchema.RemoveNamespaceAlias, BTMMSchema.RemoveNamespace),
-                tmp
-            )
-        );
-        return output;
+        var to = Diff();
+        var toDocument = new XDocument(to);
+        _ = ProcessRootElement(baseRoot, modRoot, to, alwaysOverride, new FileInfo(modPath).Name);
+        return toDocument;
     }
 
-    private static void SewageDisposal(List<(XElement item, bool fromOverride, string path)> pile)
+    private static void SewageDisposal(List<(XElement @base, XElement item, bool fromOverride, string path)> pile)
     {
         for (var i = 0; i < pile.Count; ++i)
         {
-            var (item, _, path) = pile[i];
+            var (@base, item, _, path) = pile[i];
 
             if (item.IsBTOverride())
             {
                 pile.RemoveAt(i);
-                pile.AddRange(item.Elements().Select(e => (e, true, path)));
+                pile.AddRange(item.Elements().Select(e => (@base, e, true, path)));
                 --i;
             }
         }
@@ -123,24 +120,42 @@ internal static class Differ
         return childPath;
     }
 
-    private static bool ProcessRootElement(XElement baseRoot, XElement modRoot, out List<XObject> results, bool alwaysOverride)
+    private static bool ProcessRootElement(XElement baseRoot, XElement modRoot, XElement to, bool alwaysOverride, string modFilename)
     {
-        results = [];
         var hasSomething = false;
 
-        var pile = new List<(XElement item, bool fromOverride, string path)> { (modRoot, false, "") };
+        var pile = new List<(XElement @base, XElement item, bool fromOverride, string path)> { (baseRoot, modRoot, false, "") };
 
         // Removing root overrides
         SewageDisposal(pile);
 
         // Piling up items in actual roots with child overrides
         pile = pile
-            .SelectMany(p
-                => p.item.HasAttributes
-                    ? [p]
+            .SelectMany(p =>
+            {
+                var @base = p.@base;
+
+                if (@base.Name == Elements.FusedBase)
+                {
+                    var ownId = p.item.GetBTIdentifier();
+                    var clones = @base.Elements(p.item.Name);
+                    clones = clones.Where(e => e.Attribute(Attributes.File)?.Value is null || e.Attribute(Attributes.File)?.Value == modFilename);
+                    if (ownId is not null) clones = clones.Where(e => e.GetBTIdentifier() == ownId);
+
+                    var items = clones.Take(2).ToArray();
+
+                    if (items.Length != 1)
+                        throw new InvalidDataException($"Multiple elements of type {p.item.Name.Fancify()}[@{ownId}], consider changing id mapping or adding filenames.");
+
+                    @base = items[0];
+                }
+
+                return p.item.HasAttributes
+                    ? [(@base, p.item, p.fromOverride, CombineBTMMPaths(p.path, FormPath(p.item.Name.ToString(), p.item.GetBTIdentifier(), -1)))]
                     : p.item.Elements()
-                        .Select(e
-                            => (e, p.fromOverride, FormPath(p.item.Name.ToString(), p.item.GetBTIdentifier(), -1)))
+                .Select(e
+                            => (@base, e, p.fromOverride, CombineBTMMPaths(p.path, FormPath(p.item.Name.ToString(), p.item.GetBTIdentifier(), -1))));
+            }
             ).ToList();
 
         // Removing child overrides
@@ -151,19 +166,17 @@ internal static class Differ
         if (pile.Count == 1 && (pile[0].fromOverride || pile[0].item == modRoot) && pile[0].item.HasAttributes)
         {
             modRoot = pile[0].item;
+            var path = pile[0].path;
+            var @base = pile[0].@base;
 
-            if (ProcessOverridden(baseRoot, modRoot, out var tmp))
-            {
-                results.Add(BTMMSchema.Into(FormPath(modRoot.Name.ToString(), modRoot.GetBTIdentifier(), -1), tmp));
-                hasSomething = true;
-            }
+            hasSomething |= ProcessOverridden(@base, modRoot, to, modFilename, path);
 
             return hasSomething;
         }
 
         var justAdd = new Dictionary<string, List<XElement>>();
 
-        foreach (var (child, isOverride, path) in pile)
+        foreach (var (@base, child, isOverride, path) in pile)
         {
             if (!isOverride && !alwaysOverride)
             {
@@ -177,15 +190,11 @@ internal static class Differ
                 continue;
             }
 
-            var (baseChild, childPath) = FindBaseItem(child, baseRoot, modRoot, path);
+            var (baseChild, childPath) = FindBaseItem(child, @base, modRoot, path);
 
             if (baseChild is not null)
             {
-                if (ProcessOverridden(baseChild, child, out var tmp))
-                {
-                    results.Add(BTMMSchema.Into(childPath, tmp));
-                    hasSomething = true;
-                }
+                hasSomething |= ProcessOverridden(baseChild, child, to, modFilename, childPath);
             }
             else
             {
@@ -201,19 +210,18 @@ internal static class Differ
 
         foreach (var (path, list) in justAdd)
         {
-            results.Add(BTMMSchema.Into(path, list));
+            to.Add(AddElements(path, list));
             hasSomething = true;
         }
 
         return hasSomething;
     }
 
-    private static bool ProcessOverridden(XElement @base, XElement mod, out List<XObject> results)
+    private static bool ProcessOverridden(XElement @base, XElement mod, XElement to, string modFilename, string path)
     {
         var hasSomething = false;
-        results = [];
 
-        ProcessOverriddenAttributes(@base, mod, ref results, ref hasSomething);
+        ProcessOverriddenAttributes(@base, mod, to, path, ref hasSomething);
 
         var toAdd = new List<XElement>();
         var toRemove = new List<XElement>();
@@ -231,16 +239,12 @@ internal static class Differ
 
             if (baseChild is null)
             {
-                results.AddRange(BTMMSchema.AddElements(child));
+                to.Add(AddElements(path, 1, child));
                 hasSomething = true;
             }
             else
             {
-                if (ProcessOverridden(baseChild!, child, out var tmp))
-                {
-                    results.Add(BTMMSchema.Into(childPath, tmp));
-                    hasSomething = true;
-                }
+                hasSomething |= ProcessOverridden(baseChild!, child, to, modFilename, CombineBTMMPaths(path, childPath));
             }
         }
 
@@ -258,7 +262,7 @@ internal static class Differ
             if (modChild is not null)
                 continue;
 
-            toRemove.AddRange(BTMMSchema.RemoveElements(child));
+            toRemove.AddRange(RemoveElements(child));
             hasSomething = true;
         }
 
@@ -278,14 +282,11 @@ internal static class Differ
 
                 if (delta > 0)
                 {
-                    if (delta == 1)
-                        toAdd.Add(item);
-                    else
-                        results.Add(BTMMSchema.AddElements(modCount, item));
+                    to.Add(AddElements(path, modCount, item));
                 }
                 else
                 {
-                    toRemove.Add(BTMMSchema.RemoveElement(-delta, item));
+                    toRemove.Add(RemoveElement(path, -delta, item));
                 }
 
                 hasSomething = true;
@@ -305,53 +306,89 @@ internal static class Differ
                     if (delta == 1)
                         toAdd.Add(item);
                     else
-                        results.Add(BTMMSchema.AddElements(modCount, item));
+                        to.Add(AddElements(path, modCount, item));
                 }
                 else
                 {
-                    toRemove.Add(BTMMSchema.RemoveElement(-delta, item));
+                    toRemove.Add(RemoveElement(path, -delta, item));
                 }
 
                 hasSomething = true;
             }
         }
 
-        if (toAdd.Count > 0)
-            results.AddRange(BTMMSchema.AddElements(toAdd));
+        foreach (var item in toAdd)
+        {
+            item.Attribute(Attributes.File)?.Remove();
+            to.Add(AddElements(path, 1, item));
+        }
 
-        if (toRemove.Count > 0)
-            results.AddRange(toRemove);
+        foreach (var item in toRemove)
+            to.Add(RemoveElement(path, 1, item));
 
         return hasSomething;
     }
 
-    private static void ProcessOverriddenAttributes(XElement @base, XElement mod, ref List<XObject> results, ref bool hasSomething)
+    private static void ProcessOverriddenAttributes(XElement @base, XElement mod, XElement to, string path, ref bool hasSomething)
     {
+        XElement? updateAttributes = null;
+
+        XElement GetUpdateAttributes()
+        {
+            if (updateAttributes is not null)
+                return updateAttributes;
+
+            var clones = to.Elements(Elements.UpdateAttributes)
+                .Where(e => e.GetBTMMPath() == path)
+                .Take(2)
+                .ToArray();
+
+            if (clones.Length > 1)
+                throw new Exception("Internal error");
+
+            if (clones.Length > 0)
+            {
+                updateAttributes = clones[0];
+                return updateAttributes;
+            }
+
+            updateAttributes = UpdateAttributes();
+            updateAttributes.SetAttributeValue(Attributes.Path, path);
+            to.Add(updateAttributes);
+            return updateAttributes;
+        }
+
         foreach (var attr in mod.Attributes())
         {
             var name = attr.Name;
             var value = attr.Value;
-            var baseAttr = @base.Attributes().FirstOrDefault(attr => attr.Name == name);
+            var baseAttr = @base.GetBTAttributeCIS(name);
 
-            if (value == baseAttr?.Value)
+            if (value == baseAttr)
                 continue;
 
-            results.Add(BTMMSchema.SetAttribute(name.LocalName, value));
+            if (GetUpdateAttributes().GetBTAttributeCIS(AddNamespace + name.LocalName) is not null)
+                throw new InvalidDataException($"Duplicate attribute {name.Fancify()} at {path}.");
+
+            GetUpdateAttributes().Add(SetAttribute(name.LocalName, value));
             hasSomething = true;
         }
 
         foreach (var attr in @base.Attributes())
         {
             var name = attr.Name;
-            var modAttr = mod.Attributes().FirstOrDefault(attr => attr.Name == name);
+
+            if (attr.Name == Attributes.File)
+                continue;
+
+            var modAttr = mod.GetBTAttributeCIS(name);
 
             // Processed in the first loop
             if (modAttr is not null)
                 continue;
 
-            results.Add(BTMMSchema.RemoveAttribute(name.LocalName));
+            GetUpdateAttributes().SetAttributeValue(RemoveNamespace + name.LocalName, "");
             hasSomething = true;
         }
-
     }
 }
