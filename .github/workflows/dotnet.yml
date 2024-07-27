@@ -25,7 +25,7 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Test
-      run: dotnet test --configuration Release --no-build --verbosity normal  -p:coverletOutput=lcov.info -p:CollectCoverage=true -p:CoverletOutputFormat=lcov -p:Exclude=\"[BTModMerger.Tests]*\" BTModMerger.Tests/BTModMerger.Tests.csproj
+      run: dotnet test --configuration Release --no-build --verbosity normal -p:coverletOutput=lcov.info -p:CollectCoverage=true -p:CoverletOutputFormat=lcov -p:Exclude=\"[BTModMerger.Tests]*\"
     - name: coveralls
       uses: coverallsapp/github-action@v2
       with:
