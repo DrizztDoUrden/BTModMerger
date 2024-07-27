@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35103.136
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTModMerger", "BTModMerger.csproj", "{20CCD083-11D1-4C08-B23C-AD6588C3784B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTModMerger", "BTModMerger\BTModMerger.csproj", "{20CCD083-11D1-4C08-B23C-AD6588C3784B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTModMerger.Tests", "..\BTModMerger.Tests\BTModMerger.Tests.csproj", "{8D2E3492-E802-4A2E-83AF-109D932A32CC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTModMerger.Tests", "BTModMerger.Tests\BTModMerger.Tests.csproj", "{8D2E3492-E802-4A2E-83AF-109D932A32CC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
