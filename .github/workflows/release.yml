@@ -7,12 +7,8 @@ on:
         description: "Current version"
         required: true
         type: string
-      PrevVersion:
-        description: "Previous version"
-        required: true
-        type: string
       AllowUpdates:
-        description: "Allow updating tag"
+        description: "Allow updating release"
         type: boolean
 
 env:
@@ -20,7 +16,6 @@ env:
     [![Coverage Status](https://badge.coveralls.io/repos/github/DrizztDoUrden/BTModMerger/badge.svg?tag=${{ inputs.CurrentVersion }})](https://badge.coveralls.io/github/DrizztDoUrden/BTModMerger?tag=${{ inputs.CurrentVersion }}) [![CodeQL](https://github.com/DrizztDoUrden/BTModMerger/actions/workflows/codeql.yml/badge.svg?tag=${{ inputs.CurrentVersion }})](https://github.com/DrizztDoUrden/BTModMerger/actions/workflows/codeql.yml)
     ^ fix link here
     Don't forget to add some meaningful changelog
-    Full Changelog: [${{ inputs.PrevVersion }}...${{ inputs.CurrentVersion }}](https://github.com/DrizztDoUrden/BTModMerger/compare/${{ inputs.PrevVersion }}...${{ inputs.CurrentVersion }})
 
 jobs:
   publish:
