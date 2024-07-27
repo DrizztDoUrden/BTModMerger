@@ -5,7 +5,23 @@ VisualStudioVersion = 17.11.35103.136
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTModMerger", "BTModMerger\BTModMerger.csproj", "{20CCD083-11D1-4C08-B23C-AD6588C3784B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTModMerger.Tests", "BTModMerger.Tests\BTModMerger.Tests.csproj", "{8D2E3492-E802-4A2E-83AF-109D932A32CC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTModMerger.Tests", "BTModMerger.Tests\BTModMerger.Tests.csproj", "{8D2E3492-E802-4A2E-83AF-109D932A32CC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{59AD729D-6E44-43A8-A334-F966C6C01225}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{2125F615-14AA-4A4C-9EFD-EAB07330AF84}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\codeql.yml = .github\workflows\codeql.yml
+		.github\workflows\dotnet.yml = .github\workflows\dotnet.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E456456C-8960-4908-BBC7-2DDDD8FED7D7}"
+	ProjectSection(SolutionItems) = preProject
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
+		ModdiffSyntax.md = ModdiffSyntax.md
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,6 +40,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2125F615-14AA-4A4C-9EFD-EAB07330AF84} = {59AD729D-6E44-43A8-A334-F966C6C01225}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CE367D0E-99F3-4FC3-9D48-978A60381C23}
