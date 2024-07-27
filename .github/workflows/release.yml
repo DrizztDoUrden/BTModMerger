@@ -1,11 +1,23 @@
 name: Release
 
 on:
-  push:
-    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      VersionMajor:
+        description: "Version: major"
+        required: true
+        type: number
+      VersionMinor:
+        description: "Version: minor"
+        required: true
+        type: number
+      VersionPatch:
+        description: "Version: patch"
+        required: true
+        type: number
 
 env:
-  RELEASE_VERSION: ${{ github.ref_name }}
+  RELEASE_VERSION: v${{ inputs.VersionMajor }}.${{ inputs.VersionMinor }}.${{ inputs.VersionPatch }}
 
 jobs:
   publish:
@@ -40,59 +52,26 @@ jobs:
       run: |
           dotnet publish --no-build BTModMerger -p:PublishProfile=BTModMerger/Properties/PublishProfiles/Portable.pubxml
           mkdir -p artifacts
-          zip -9 -qr artifacts/BTModManager.${RELEASE_VERSION}.zip BTModMerger/bin/publish/BTModManager
+          zip -9 -qr artifacts/BTModManager.v${{ inputs.VersionMajor }}.${{ inputs.VersionMinor }}.${{ inputs.VersionPatch }}.zip BTModMerger/bin/publish/BTModManager
 
     - name: Publish Windows
       id: windows
       run: |
           dotnet publish BTModMerger -p:PublishProfile=BTModMerger/Properties/PublishProfiles/SelfContained.pubxml
           mkdir -p artifacts
-          zip -9 -qr artifacts/BTModManager.self-contained.${RELEASE_VERSION}.zip BTModMerger/bin/publish/BTModManager.self-contained
+          zip -9 -qr artifacts/BTModManager.self-contained.v${{ inputs.VersionMajor }}.${{ inputs.VersionMinor }}.${{ inputs.VersionPatch }}.zip BTModMerger/bin/publish/BTModManager.self-contained
 
     - name: Publish Linux
       id: linux
       run: |
           dotnet publish BTModMerger -p:PublishProfile=BTModMerger/Properties/PublishProfiles/SelfContainedLinux.pubxml
           mkdir -p artifacts
-          tar -czvf artifacts/BTModManager.self-contained.linux.${RELEASE_VERSION}.tar.gz BTModMerger/bin/publish/BTModManager.self-contained.linux
+          tar -czvf artifacts/BTModManager.self-contained.linux.v${{ inputs.VersionMajor }}.${{ inputs.VersionMinor }}.${{ inputs.VersionPatch }}.tar.gz BTModMerger/bin/publish/BTModManager.self-contained.linux
 
-    - name: Create GitHub release
-      uses: actions/create-release@v1
-      id: CreateRelease
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - uses: ncipollo/release-action@v1
       with:
+        name: v${{ inputs.VersionMajor }}.${{ inputs.VersionMinor }}.${{ inputs.VersionPatch }}
+        artifacts: "artifacts/BTModManager.v${{ inputs.VersionMajor }}.${{ inputs.VersionMinor }}.${{ inputs.VersionPatch }}.zip,artifacts/BTModManager.self-contained.v${{ inputs.VersionMajor }}.${{ inputs.VersionMinor }}.${{ inputs.VersionPatch }}.zip,artifacts/BTModManager.self-contained.linux.v${{ inputs.VersionMajor }}.${{ inputs.VersionMinor }}.${{ inputs.VersionPatch }}.tar.gz"
+        token: ${{ secrets.GITHUB_TOKEN }}
         draft: true
-        prerelease: false
-        release_name: ${{ github.ref_name }}
-        tag_name: ${{ github.ref }}
-
-    - name: Upload portable artifact
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.CreateRelease.outputs.upload_url }}
-        asset_path: artifacts/BTModManager.zip
-        asset_name: BTModManager.zip
-        asset_content_type: application/zip
-
-    - name: Upload Windows artifact
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.CreateRelease.outputs.upload_url }}
-        asset_path: artifacts/BTModManager.self-contained.zip
-        asset_name: BTModManager.self-contained.zip
-        asset_content_type: application/gzip
-
-    - name: Upload Linux artifact
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.CreateRelease.outputs.upload_url }}
-        asset_path: artifacts/BTModManager.self-contained.linux.tar.gz
-        asset_name: BTModManager.self-contained.linux.tar.gz    
-        asset_content_type: application/zip
+        allowUpdates: true
