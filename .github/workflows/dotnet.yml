@@ -29,10 +29,10 @@ jobs:
     - name : coverlet
       uses: b3b00/coverlet-action@1.2.5
       with:
-        testProject: 'BTModMerger.Test/BTModMerger.Test.csproj'
+        testProject: 'BTModMerger.Tests/BTModMerger.Tests.csproj'
         output: 'lcov.info'
         outputFormat: 'lcov'
-        excludes: '[BTModMerger.Test]*'
+        excludes: '[BTModMerger.Tests]*'
     - name: coveralls
       uses: coverallsapp/github-action@v2
       with:
