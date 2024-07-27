@@ -1,15 +1,36 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <StartupObject>BTModMerger.CLI</StartupObject>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<StartupObject>BTModMerger.CLI</StartupObject>
+		<Configurations>Debug;Release;Publish;PublishSC;PublishSC</Configurations>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\BTModMerger.Core\BTModMerger.Core.csproj" />
-  </ItemGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='PublishSC|AnyCPU'">
+		<Optimize>True</Optimize>
+		<DebugType>none</DebugType>
+		<PublishTrimmed>True</PublishTrimmed>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Publish|AnyCPU'">
+		<Optimize>True</Optimize>
+		<DebugType>none</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<DebugType>portable</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<Optimize>True</Optimize>
+		<DebugType>portable</DebugType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\BTModMerger.Core\BTModMerger.Core.csproj" />
+	</ItemGroup>
 
 </Project>

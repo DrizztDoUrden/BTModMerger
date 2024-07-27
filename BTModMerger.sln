@@ -11,6 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\codeql.yml = .github\workflows\codeql.yml
 		.github\workflows\dotnet.yml = .github\workflows\dotnet.yml
+		.github\workflows\release.yml = .github\workflows\release.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E456456C-8960-4908-BBC7-2DDDD8FED7D7}"
@@ -28,19 +29,31 @@ EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Publish|Any CPU = Publish|Any CPU
+		PublishSC|Any CPU = PublishSC|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{20CCD083-11D1-4C08-B23C-AD6588C3784B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{20CCD083-11D1-4C08-B23C-AD6588C3784B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20CCD083-11D1-4C08-B23C-AD6588C3784B}.Publish|Any CPU.ActiveCfg = Publish|Any CPU
+		{20CCD083-11D1-4C08-B23C-AD6588C3784B}.Publish|Any CPU.Build.0 = Publish|Any CPU
+		{20CCD083-11D1-4C08-B23C-AD6588C3784B}.PublishSC|Any CPU.ActiveCfg = PublishSC|Any CPU
+		{20CCD083-11D1-4C08-B23C-AD6588C3784B}.PublishSC|Any CPU.Build.0 = PublishSC|Any CPU
 		{20CCD083-11D1-4C08-B23C-AD6588C3784B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{20CCD083-11D1-4C08-B23C-AD6588C3784B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4A97DA22-77F9-4581-9CE5-E2E1DB741D02}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4A97DA22-77F9-4581-9CE5-E2E1DB741D02}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A97DA22-77F9-4581-9CE5-E2E1DB741D02}.Publish|Any CPU.ActiveCfg = Publish|Any CPU
+		{4A97DA22-77F9-4581-9CE5-E2E1DB741D02}.Publish|Any CPU.Build.0 = Publish|Any CPU
+		{4A97DA22-77F9-4581-9CE5-E2E1DB741D02}.PublishSC|Any CPU.ActiveCfg = PublishSC|Any CPU
+		{4A97DA22-77F9-4581-9CE5-E2E1DB741D02}.PublishSC|Any CPU.Build.0 = PublishSC|Any CPU
 		{4A97DA22-77F9-4581-9CE5-E2E1DB741D02}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4A97DA22-77F9-4581-9CE5-E2E1DB741D02}.Release|Any CPU.Build.0 = Release|Any CPU
 		{71C41462-569B-4F3B-94AF-343B08C56813}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{71C41462-569B-4F3B-94AF-343B08C56813}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71C41462-569B-4F3B-94AF-343B08C56813}.Publish|Any CPU.ActiveCfg = Release|Any CPU
+		{71C41462-569B-4F3B-94AF-343B08C56813}.PublishSC|Any CPU.ActiveCfg = Release|Any CPU
 		{71C41462-569B-4F3B-94AF-343B08C56813}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{71C41462-569B-4F3B-94AF-343B08C56813}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
