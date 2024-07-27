@@ -16,10 +16,11 @@ on:
         type: boolean
 
 env:
-    PR_BODY: |
-      [![Coverage Status](https://badge.coveralls.io/repos/github/DrizztDoUrden/BTModMerger/badge.svg?tag=${{ inputs.CurrentVersion }})](https://badge.coveralls.io/github/DrizztDoUrden/BTModMerger?tag=${{ inputs.CurrentVersion }}) [![CodeQL](https://github.com/DrizztDoUrden/BTModMerger/actions/workflows/codeql.yml/badge.svg?tag=${{ inputs.CurrentVersion }})](https://github.com/DrizztDoUrden/BTModMerger/actions/workflows/codeql.yml)
-      ^ fix link here
-      Full Changelog: [${{ inputs.PrevVersion }}...${{ inputs.CurrentVersion }}](https://github.com/DrizztDoUrden/BTModMerger/compare/${{ inputs.PrevVersion }}...${{ inputs.CurrentVersion }})
+  PR_BODY: |
+    [![Coverage Status](https://badge.coveralls.io/repos/github/DrizztDoUrden/BTModMerger/badge.svg?tag=${{ inputs.CurrentVersion }})](https://badge.coveralls.io/github/DrizztDoUrden/BTModMerger?tag=${{ inputs.CurrentVersion }}) [![CodeQL](https://github.com/DrizztDoUrden/BTModMerger/actions/workflows/codeql.yml/badge.svg?tag=${{ inputs.CurrentVersion }})](https://github.com/DrizztDoUrden/BTModMerger/actions/workflows/codeql.yml)
+    ^ fix link here
+    Don't forget to add some meaningful changelog
+    Full Changelog: [${{ inputs.PrevVersion }}...${{ inputs.CurrentVersion }}](https://github.com/DrizztDoUrden/BTModMerger/compare/${{ inputs.PrevVersion }}...${{ inputs.CurrentVersion }})
 
 jobs:
   publish:
@@ -54,7 +55,7 @@ jobs:
       run: |
           dotnet publish --no-build BTModMerger -p:PublishProfile=BTModMerger/Properties/PublishProfiles/Portable.pubxml
           mkdir -p artifacts
-          zip -9 -qr artifacts/BTModManager.${{ inputs.CurrentVersion }}".zip BTModMerger/bin/publish/BTModManager
+          zip -9 -qr artifacts/BTModManager.${{ inputs.CurrentVersion }}.zip BTModMerger/bin/publish/BTModManager
 
     - name: Publish Windows
       id: windows
