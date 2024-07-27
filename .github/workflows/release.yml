@@ -15,6 +15,9 @@ on:
         description: "Version: patch"
         required: true
         type: number
+      AllowUpdates:
+        description: "Allow updating tag"
+        type: boolean
 
 env:
     CURRENT_VERSION: v${{ inputs.VersionMajor }}.${{ inputs.VersionMinor }}.${{ inputs.VersionPatch }}
@@ -80,7 +83,7 @@ jobs:
         artifacts: "artifacts/BTModManager.${{ env.CURRENT_VERSION }}.zip,artifacts/BTModManager.self-contained.${{ env.CURRENT_VERSION }}.zip,artifacts/BTModManager.self-contained.linux.${{ env.CURRENT_VERSION }}.tar.gz"
         token: ${{ secrets.GITHUB_TOKEN }}
         draft: true
-        allowUpdates: true
+        allowUpdates: ${{ inputs.AllowUpdates }}
         replacesArtifacts: true
         tag: ${{ env.CURRENT_VERSION }}
         body: ${{ env.PR_BODY }}
