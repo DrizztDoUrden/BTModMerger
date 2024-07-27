@@ -32,7 +32,6 @@ jobs:
         testProject: 'BTModMerger.Tests/BTModMerger.Tests.csproj'
         output: 'lcov.info'
         outputFormat: 'lcov'
-        excludes: '[BTModMerger.Tests]*'
     - name: coveralls
       uses: coverallsapp/github-action@v2
       with:
