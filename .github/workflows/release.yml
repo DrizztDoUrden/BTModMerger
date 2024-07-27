@@ -73,11 +73,12 @@ jobs:
 
     - uses: ncipollo/release-action@v1
       with:
-        name: ${{ inputs.CurrentVersion }}
+        tag: ${{ inputs.CurrentVersion }}
         artifacts: "artifacts/BTModManager.${{ inputs.CurrentVersion }}.zip,artifacts/BTModManager.self-contained.${{ inputs.CurrentVersion }}.zip,artifacts/BTModManager.self-contained.linux.${{ inputs.CurrentVersion }}.tar.gz"
         token: ${{ secrets.GITHUB_TOKEN }}
-        draft: true
         allowUpdates: ${{ inputs.AllowUpdates }}
-        replacesArtifacts: true
-        tag: ${{ inputs.CurrentVersion }}
         body: ${{ env.PR_BODY }}
+        draft: true
+        removeArtifacts: true
+        omitBodyDuringUpdate: true
+        omitDraftDuringUpdate: true
