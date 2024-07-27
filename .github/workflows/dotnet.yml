@@ -29,7 +29,7 @@ jobs:
     - name : coverlet
       uses: b3b00/coverlet-action@1.2.5
       with:
-        testProject: 'myProjectTests/myProjectTests.csproj'
+        testProject: 'BTModMerger.Test/BTModMerger.Test.csproj'
         output: 'lcov.info'
         outputFormat: 'lcov'
         excludes: '[BTModMerger.Test]*'
