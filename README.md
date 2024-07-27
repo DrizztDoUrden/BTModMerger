@@ -1,4 +1,5 @@
 [![Coverage Status](https://badge.coveralls.io/repos/github/DrizztDoUrden/BTModMerger/badge.svg?branch=master&kill_cache=1)](https://badge.coveralls.io/github/DrizztDoUrden/BTModMerger?branch=master)
+[![CodeQL](https://github.com/DrizztDoUrden/BTModMerger/actions/workflows/codeql.yml/badge.svg?branch=master&event=push)](https://github.com/DrizztDoUrden/BTModMerger/actions/workflows/codeql.yml)
 
 # BTModMerger
 
