@@ -4,6 +4,9 @@ on:
   push:
     tags: ['v*.*.*']
 
+env:
+  RELEASE_VERSION: ${{ github.ref_name }}
+
 jobs:
   publish:
 
@@ -37,21 +40,21 @@ jobs:
       run: |
           dotnet publish --no-build BTModMerger -p:PublishProfile=BTModMerger/Properties/PublishProfiles/Portable.pubxml
           mkdir -p artifacts
-          zip -9 -qr artifacts/BTModManager.zip BTModMerger/bin/publish/BTModManager
+          zip -9 -qr artifacts/BTModManager.${RELEASE_VERSION}.zip BTModMerger/bin/publish/BTModManager
 
     - name: Publish Windows
       id: windows
       run: |
           dotnet publish BTModMerger -p:PublishProfile=BTModMerger/Properties/PublishProfiles/SelfContained.pubxml
           mkdir -p artifacts
-          zip -9 -qr artifacts/BTModManager.self-contained.zip BTModMerger/bin/publish/BTModManager.self-contained
+          zip -9 -qr artifacts/BTModManager.self-contained.${RELEASE_VERSION}.zip BTModMerger/bin/publish/BTModManager.self-contained
 
     - name: Publish Linux
       id: linux
       run: |
           dotnet publish BTModMerger -p:PublishProfile=BTModMerger/Properties/PublishProfiles/SelfContainedLinux.pubxml
           mkdir -p artifacts
-          tar -czvf artifacts/BTModManager.self-contained.linux.tar.gz BTModMerger/bin/publish/BTModManager.self-contained.linux
+          tar -czvf artifacts/BTModManager.self-contained.linux.${RELEASE_VERSION}.tar.gz BTModMerger/bin/publish/BTModManager.self-contained.linux
 
     - name: Create GitHub release
       uses: actions/create-release@v1
