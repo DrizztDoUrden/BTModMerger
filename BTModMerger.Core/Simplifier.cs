@@ -10,8 +10,7 @@ using static BTModMerger.Core.ToolBase;
 namespace BTModMerger.Core;
 
 public class Simplifier(
-    ILogger<Simplifier> logger,
-    BTMetadata metadata
+    ILogger<Simplifier> logger
 )
     : ISimplifier
 {

@@ -12,8 +12,7 @@ using static BTMMSchema;
 public class Simplifier_Tests
 {
     private Simplifier Make(LoggerFactory lf) => new(
-        new Logger<Simplifier>(lf),
-        BTMetadata.Test
+        new Logger<Simplifier>(lf)
     );
 
     [Fact]
