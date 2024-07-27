@@ -1,12 +1,11 @@
 ﻿using System.Reflection;
 using System.Xml.Linq;
-
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 using PowerArgs;
 
-namespace BTModMerger;
+namespace BTModMerger.CLI;
 
 [TabCompletion, ArgExceptionBehavior(ArgExceptionPolicy.StandardExceptionHandling)]
 public sealed class CLI

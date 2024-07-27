@@ -1,11 +1,10 @@
 ﻿using System.Xml.Linq;
-
 using Microsoft.Extensions.Logging;
 
 namespace BTModMerger.Tests;
 
 using static BTMMSchema;
-using static BTModMerger.CLI;
+using static BTModMerger.CLI.CLI;
 
 public class Simplifier_Tests
 {

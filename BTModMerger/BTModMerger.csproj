@@ -5,7 +5,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <StartupObject>BTModMerger.CLI</StartupObject>
+    <StartupObject>BTModMerger.CLI.CLI</StartupObject>
     <PublishTrimmed>False</PublishTrimmed>
     <PublishAot>False</PublishAot>
     <Configurations>Debug;Release</Configurations>

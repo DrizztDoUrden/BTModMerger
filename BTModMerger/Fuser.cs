@@ -1,9 +1,8 @@
 using System.Xml.Linq;
-
 using Microsoft.Extensions.Logging;
 
 using static BTModMerger.BTMMSchema;
-using static BTModMerger.CLI;
+using static BTModMerger.CLI.CLI;
 using static BTModMerger.ToolBase;
 
 namespace BTModMerger;
