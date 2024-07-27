@@ -3,18 +3,14 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      VersionMajor:
-        description: "Version: major"
+      CurrentVersion:
+        description: "Current version"
         required: true
-        type: number
-      VersionMinor:
-        description: "Version: minor"
+        type: string
+      PrevVersion:
+        description: "Previous version"
         required: true
-        type: number
-      VersionPatch:
-        description: "Version: patch"
-        required: true
-        type: number
+        type: string
       AllowUpdates:
         description: "Allow updating tag"
         type: boolean
@@ -23,10 +19,9 @@ env:
     CURRENT_VERSION: v${{ inputs.VersionMajor }}.${{ inputs.VersionMinor }}.${{ inputs.VersionPatch }}
     PREV_VERSION: v${{ inputs.VersionMajor }}.${{ inputs.VersionMinor }}.${{ inputs.VersionPatch - 1 }}
     PR_BODY: |
-      [![Coverage Status](https://badge.coveralls.io/repos/github/DrizztDoUrden/BTModMerger/badge.svg?tag=${{ env.CURRENT_VERSION }})](https://badge.coveralls.io/github/DrizztDoUrden/BTModMerger?tag=${{ env.CURRENT_VERSION }}) [![CodeQL](https://github.com/DrizztDoUrden/BTModMerger/actions/workflows/codeql.yml/badge.svg?tag=${{ env.CURRENT_VERSION }})](https://github.com/DrizztDoUrden/BTModMerger/actions/workflows/codeql.yml)
+      [![Coverage Status](https://badge.coveralls.io/repos/github/DrizztDoUrden/BTModMerger/badge.svg?tag=${{ inputs.CurrentVersion }})](https://badge.coveralls.io/github/DrizztDoUrden/BTModMerger?tag=${{ inputs.CurrentVersion }}) [![CodeQL](https://github.com/DrizztDoUrden/BTModMerger/actions/workflows/codeql.yml/badge.svg?tag=${{ inputs.CurrentVersion }})](https://github.com/DrizztDoUrden/BTModMerger/actions/workflows/codeql.yml)
       ^ fix link here
-      V check prev version here
-      Full Changelog: [${{ env.PREV_VERSION }}...${{ env.CURRENT_VERSION }}](https://github.com/DrizztDoUrden/BTModMerger/compare/${{ env.PREV_VERSION }}...${{ env.CURRENT_VERSION }})
+      Full Changelog: [${{ inputs.PrevVersion }}...${{ inputs.CurrentVersion }}](https://github.com/DrizztDoUrden/BTModMerger/compare/${{ inputs.PrevVersion }}...${{ inputs.CurrentVersion }})
 
 jobs:
   publish:
@@ -61,29 +56,29 @@ jobs:
       run: |
           dotnet publish --no-build BTModMerger -p:PublishProfile=BTModMerger/Properties/PublishProfiles/Portable.pubxml
           mkdir -p artifacts
-          zip -9 -qr artifacts/BTModManager.${{ env.CURRENT_VERSION }}".zip BTModMerger/bin/publish/BTModManager
+          zip -9 -qr artifacts/BTModManager.${{ inputs.CurrentVersion }}".zip BTModMerger/bin/publish/BTModManager
 
     - name: Publish Windows
       id: windows
       run: |
           dotnet publish BTModMerger -p:PublishProfile=BTModMerger/Properties/PublishProfiles/SelfContained.pubxml
           mkdir -p artifacts
-          zip -9 -qr artifacts/BTModManager.self-contained.${{ env.CURRENT_VERSION }}.zip BTModMerger/bin/publish/BTModManager.self-contained
+          zip -9 -qr artifacts/BTModManager.self-contained.${{ inputs.CurrentVersion }}.zip BTModMerger/bin/publish/BTModManager.self-contained
 
     - name: Publish Linux
       id: linux
       run: |
           dotnet publish BTModMerger -p:PublishProfile=BTModMerger/Properties/PublishProfiles/SelfContainedLinux.pubxml
           mkdir -p artifacts
-          tar -czvf artifacts/BTModManager.self-contained.linux.${{ env.CURRENT_VERSION }}.tar.gz BTModMerger/bin/publish/BTModManager.self-contained.linux
+          tar -czvf artifacts/BTModManager.self-contained.linux.${{ inputs.CurrentVersion }}.tar.gz BTModMerger/bin/publish/BTModManager.self-contained.linux
 
     - uses: ncipollo/release-action@v1
       with:
-        name: ${{ env.CURRENT_VERSION }}
-        artifacts: "artifacts/BTModManager.${{ env.CURRENT_VERSION }}.zip,artifacts/BTModManager.self-contained.${{ env.CURRENT_VERSION }}.zip,artifacts/BTModManager.self-contained.linux.${{ env.CURRENT_VERSION }}.tar.gz"
+        name: ${{ inputs.CurrentVersion }}
+        artifacts: "artifacts/BTModManager.${{ inputs.CurrentVersion }}.zip,artifacts/BTModManager.self-contained.${{ inputs.CurrentVersion }}.zip,artifacts/BTModManager.self-contained.linux.${{ inputs.CurrentVersion }}.tar.gz"
         token: ${{ secrets.GITHUB_TOKEN }}
         draft: true
         allowUpdates: ${{ inputs.AllowUpdates }}
         replacesArtifacts: true
-        tag: ${{ env.CURRENT_VERSION }}
+        tag: ${{ inputs.CurrentVersion }}
         body: ${{ env.PR_BODY }}
