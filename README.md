@@ -1,4 +1,4 @@
-[![Coverage Status](https://badge.coveralls.io/repos/github/DrizztDoUrden/BTModMerger/badge.svg?branch=master)](https://badge.coveralls.io/github/DrizztDoUrden/BTModMerger?branch=master)
+[![Coverage Status](https://badge.coveralls.io/repos/github/DrizztDoUrden/BTModMerger/badge.svg?branch=master&kill_cache=1)](https://badge.coveralls.io/github/DrizztDoUrden/BTModMerger?branch=master)
 
 # BTModMerger
 
