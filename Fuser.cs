@@ -1,5 +1,6 @@
-using System.Diagnostics;
 using System.Xml.Linq;
+
+using Microsoft.Extensions.Logging;
 
 using static BTModMerger.BTMMSchema;
 using static BTModMerger.CLI;
@@ -7,9 +8,15 @@ using static BTModMerger.ToolBase;
 
 namespace BTModMerger;
 
-class Fuser
+public sealed class Fuser(
+    ILogger<Fuser> logger,
+    BTMetadata metadata,
+    Linearizer linearizer,
+    Delinearizer delinearizer,
+    Simplifier simplifier
+)
 {
-    public static void Apply(string[] partPaths, Stream? cin, bool partsFromCin, string? outputPath, bool delinearize, bool skipSimplifying, in Simplifier.Options simplifierOptions, ConflictsFileInfo? conflicts)
+    public void Apply(string[] partPaths, Stream? cin, bool partsFromCin, string? outputPath, bool delinearize, bool skipSimplifying, in Simplifier.Options simplifierOptions, ConflictsFileInfo? conflicts)
     {
         List<(string path, XDocument xml)> parts = partPaths
             .Select(path => (path, XDocument.Load(path)))
@@ -28,7 +35,7 @@ class Fuser
 
         if (parts.Count < 2)
         {
-            Log.Error("Less than two files provided to fuse.");
+            logger.LogError("Less than two files provided to fuse.");
             return;
         }
 
@@ -41,12 +48,12 @@ class Fuser
         var notDiffs = partRootNames.Any(name => name != Elements.Diff);
         if (notDiffs && partRootNames.Any(name => name == Elements.Diff))
         {
-            Log.Error("Fusing diffs with base files is not supported. Maybe you wanted to apply them?");
+            logger.LogError("Fusing diffs with base files is not supported. Maybe you wanted to apply them?");
             return;
         }
 
         parts = parts
-            .Select(part => (part.path, Linearizer.Apply(part.xml, part.path)))
+            .Select(part => (part.path, linearizer.Apply(part.xml, part.path)))
             .ToList();
 
         var toRoot = notDiffs ? FusedBase() : Diff();
@@ -60,36 +67,36 @@ class Fuser
         }
 
         foreach (var (path, xml) in parts)
-            Fuse(toRoot, xml.Elements().Single(), path + ":", new FileInfo(path).Name);
+            Apply(toRoot, xml.Elements().Single(), path + ":", new FileInfo(path).Name);
         if (!skipSimplifying)
-            to = Simplifier.Apply(to, "<temporary>", simplifierOptions, conflictsDocument?.Root);
+            to = simplifier.Apply(to, "<temporary>", simplifierOptions, conflictsDocument?.Root);
         if (delinearize)
-            to = Delinearizer.Apply(to, "<temporary>");
+            to = delinearizer.Apply(to, "<temporary>");
 
         SaveResult(outputPath, to);
 
         if (conflicts is not null)
         {
             if (conflicts.Delinearize)
-                conflictsDocument = Delinearizer.Apply(conflictsDocument!, conflicts.Path.FullName);
+                conflictsDocument = delinearizer.Apply(conflictsDocument!, conflicts.Path.FullName);
             conflictsDocument?.Save(conflicts!.Path.FullName);
         }
     }
 
-    private static void Fuse(XElement to, XElement part, string dbgPath, string filename)
+    public void Apply(XElement to, XElement part, string dbgPath, string filename)
     {
         var nextPath = CombineBTMMPaths(dbgPath, part.Name);
 
         if (part.Name == Elements.Diff || part.Name == Elements.FusedBase)
         {
             foreach (var child in part.Elements())
-                Fuse(to, child, nextPath, filename);
+                Apply(to, child, nextPath, filename);
             return;
         }
 
         if (to.Name == Elements.FusedBase)
         {
-            if (BTMetadata.Instance.IndexByFilename.Contains(part.Name.Fancify().ToLower()))
+            if (metadata.IndexByFilename.Contains(part.Name.Fancify().ToLower()))
             {
                 var copy = new XElement(part);
                 if (copy.Attribute(Attributes.File) is null)
@@ -99,7 +106,7 @@ class Fuser
             }
         }
 
-        if (BTMetadata.Instance.Partial.Contains(part.Name.Fancify().ToLower()))
+        if (metadata.Partial.Contains(part.Name.Fancify().ToLower()))
         {
             var target = to.Elements(part.Name)
                 .SingleOrDefault();

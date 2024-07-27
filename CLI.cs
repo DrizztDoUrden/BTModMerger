@@ -1,12 +1,15 @@
 ﻿using System.Reflection;
 using System.Xml.Linq;
 
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
 using PowerArgs;
 
 namespace BTModMerger;
 
 [TabCompletion, ArgExceptionBehavior(ArgExceptionPolicy.StandardExceptionHandling)]
-sealed internal class CLI
+public sealed class CLI
 {
     public enum AddNamespacePolicy
     {
@@ -34,6 +37,41 @@ sealed internal class CLI
 
     public record ConflictsFileInfo(FileInfo Path, bool Override, bool Delinearize);
 
+    public class Services(string pathToMetadata) : IDisposable
+    {
+        public ServiceProvider Provider { get; } = new ServiceCollection()
+            .AddLogging(lb => lb.AddConsole())
+            .AddSingleton<BTMetadata, BTMetadata>(sp => BTMetadata.Load(pathToMetadata))
+            .AddSingleton<Linearizer, Linearizer>()
+            .AddSingleton<Delinearizer, Delinearizer>()
+            .AddSingleton<Simplifier, Simplifier>()
+            .AddSingleton<Differ, Differ>()
+            .AddSingleton<Applier, Applier>()
+            .AddSingleton<Fuser, Fuser>()
+            .BuildServiceProvider();
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!m_disposed)
+            {
+                if (disposing)
+                {
+                    Provider.Dispose();
+                }
+
+                m_disposed = true;
+            }
+        }
+
+        private bool m_disposed;
+    }
+
     [HelpHook, ArgShortcut("-?"), ArgDescription("Shows this help")]
     public bool Help { get; set; }
 
@@ -58,8 +96,8 @@ sealed internal class CLI
         [ArgDescription("Delinearize resulting diff. Optional.")]
         bool delinearize)
     {
-        BTMetadata.Path = PathToMetadata;
-        Differ.Apply(@base, mod, output, alwaysOverride, delinearize);
+        using var services = new Services(PathToMetadata);
+        services.Provider.GetRequiredService<Differ>().Apply(@base, mod, output, alwaysOverride, delinearize);
     }
 
     [ArgActionMethod]
@@ -77,9 +115,8 @@ sealed internal class CLI
         [ArgDescription("Whether to generate a file with just overrides and additions (aka a mod) rather than all info. Optional.")]
         bool @override)
     {
-        BTMetadata.Path = PathToMetadata;
-
-        Aplyier.Apply(@base, mod, output, @override);
+        using var services = new Services(PathToMetadata);
+        services.Provider.GetRequiredService<Applier>().Apply(@base, mod, output, @override);
     }
 
     [ArgActionMethod]
@@ -115,12 +152,13 @@ sealed internal class CLI
         [ArgDescription("Whether to delinearize conflicts file.")]
         bool delinearizeConflicts)
     {
-        BTMetadata.Path = PathToMetadata;
         var cin = processCin || partsFromCin ? Console.OpenStandardInput() : null;
-        Fuser.Apply(parts ?? [], cin, partsFromCin, output, delinearize, skipSimplifying, new(
+
+        using var services = new Services(PathToMetadata);
+        services.Provider.GetRequiredService<Fuser>().Apply(parts ?? [], cin, partsFromCin, output, delinearize, skipSimplifying, new(
             addNamespacePolicy ?? defaultAddNamespacePolicy,
             conflictHandlingPolicy ?? defaultConflictHandlingPolicy
-        ), 
+        ),
         conflicts is not null ? new(new(conflicts), overrideConflicts, delinearizeConflicts) : null);
     }
 
@@ -160,7 +198,8 @@ sealed internal class CLI
         [ArgDescription("Path to a file to store result into. Optional. If not provided, cout would be used.")]
         string? output)
     {
-        Linearizer.Apply(input, output);
+        using var services = new Services(PathToMetadata);
+        services.Provider.GetRequiredService<Linearizer>().Apply(input, output);
     }
 
     [ArgActionMethod]
@@ -172,7 +211,8 @@ sealed internal class CLI
         [ArgDescription("Path to a file to store result into. Optional. If not provided, cout would be used.")]
         string? output)
     {
-        Delinearizer.Apply(input, output);
+        using var services = new Services(PathToMetadata);
+        services.Provider.GetRequiredService<Delinearizer>().Apply(input, output);
     }
 
     [ArgActionMethod]
@@ -197,7 +237,8 @@ sealed internal class CLI
         [ArgDescription("Whether to delinearize conflicts file.")]
         bool delinearizeConflicts)
     {
-        Simplifier.Apply(
+        using var services = new Services(PathToMetadata);
+        services.Provider.GetRequiredService<Simplifier>().Apply(
             input,
             output,
             new(addNamespacePolicy, conflictHandlingPolicy),
@@ -210,8 +251,8 @@ sealed internal class CLI
         try
         {
 #endif
-            Args.InvokeAction<CLI>(args);
-            return 0;
+        Args.InvokeAction<CLI>(args);
+        return 0;
 #if !DEBUG
     }
         catch (Exception ex)

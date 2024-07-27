@@ -1,13 +1,19 @@
 ﻿using System.Xml.Linq;
 
+using Microsoft.Extensions.Logging;
+
 using static BTModMerger.BTMMSchema;
 using static BTModMerger.ToolBase;
 
 namespace BTModMerger;
 
-sealed internal class Aplyier
+public sealed class Applier(
+    ILogger<Applier> logger,
+    BTMetadata metadata,
+    Linearizer linearizer
+)
 {
-    public static void Apply(string? basePath, string modPath, string? outputPath, bool asOverride)
+    public void Apply(string? basePath, string modPath, string? outputPath, bool asOverride)
     {
         var baseFile = string.IsNullOrWhiteSpace(basePath)
             ? Console.OpenStandardInput()
@@ -22,14 +28,14 @@ sealed internal class Aplyier
 
         if (mod.Root!.Name != Elements.Diff)
         {
-            Log.Error($"Mod ({modPath}) should be in diff format.");
+            logger.LogError("Mod ({modPath}) should be in diff format.", modPath);
             return;
         }
 
         var baseRoot = @base.Root!;
 
         var to = baseRoot.Name == Elements.FusedBase || asOverride && !baseRoot.HasAttributes ? new XDocument() : @base;
-        mod = Linearizer.Apply(mod, modPath);
+        mod = linearizer.Apply(mod, modPath);
 
         var modRoot = mod.Root!;
 
@@ -37,13 +43,13 @@ sealed internal class Aplyier
         SaveResult(outputPath, to);
     }
 
-    private static XDocument LoadMod(string modPath)
+    private XDocument LoadMod(string modPath)
     {
         using var modFile = File.OpenRead(modPath);
         return XDocument.Load(modFile, LoadOptions.None);
     }
 
-    private static void Apply(XElement diffElement, XElement from, XContainer to, string diffPath)
+    public void Apply(XElement diffElement, XContainer from, XContainer to, string diffPath)
     {
         foreach (var child in diffElement.Elements())
         {
@@ -77,7 +83,11 @@ sealed internal class Aplyier
 
             if (child.GetBTMMAmount() != 1)
             {
-                Log.Error($"btmm:RemoveElements with btmm:Amount({child.GetBTMMAmount()}) at {diffPath}/{child.Name.Fancify()}, value ignored");
+                logger.LogError("btmm:RemoveElements with btmm:Amount({amount}) at {diffPath}/{childName}, value ignored",
+                    child.GetBTMMAmount(),
+                    diffPath,
+                    child.Name.Fancify()
+                );
             }
 
             var (fromTarget, toTarget) = GetTarget(target, from, to, diffPath, () => child.Attribute(Attributes.File)?.Value);
@@ -131,7 +141,12 @@ sealed internal class Aplyier
 
                 if (idx == -1)
                 {
-                    Log.Error($"Item to remove not found at {diffPath}/{request.Name.Fancify()}({request.GetBTMMPath()}/{item.Name.LocalName})");
+                    logger.LogError("Item to remove not found at {diffPath}/{requestName}({requestPath}/{itemName})",
+                        diffPath,
+                        request.Name.Fancify(),
+                        request.GetBTMMPath(),
+                        item.Name.LocalName
+                    );
                     break;
                 }
 
@@ -166,7 +181,7 @@ sealed internal class Aplyier
         }
     }
 
-    public static (XElement from, XElement to) GetTarget(string target, XElement from, XContainer to, string diffPath, Func<string?> filenameGetter)
+    public (XContainer from, XElement to) GetTarget(string target, XContainer from, XContainer to, string diffPath, Func<string?> filenameGetter)
     {
         var parts = SplitPath(target);
         XElement? targetElement = null;
@@ -178,15 +193,20 @@ sealed internal class Aplyier
         {
             var partCopy = part;
             var sss = ExtractSubscripts(ref partCopy, diffPath);
-            var fromElems = from.Elements(partCopy);
+            var isFused = from.Elements(Elements.FusedBase).Any();
 
-            if (from.Name == Elements.FusedBase && BTMetadata.Instance.IndexByFilename.Contains(part))
+            var fromElems = isFused
+                ? from.Elements(Elements.FusedBase).Single().ElementsCIS(partCopy)
+                : from.ElementsCIS(partCopy);
+
+            if (isFused && metadata.IndexByFilename.Contains(part))
             {
                 var fileName = filenameGetter();
-                fromElems = fromElems.Where(e => e.Attribute(Attributes.File)?.Value is null || e.Attribute(Attributes.File)?.Value == fileName);
+                fromElems = fromElems
+                    .Where(e => e.Attribute(Attributes.File)?.Value is null || e.Attribute(Attributes.File)?.Value == fileName);
             }
 
-            fromElems = fromElems.FilterBySubscripts(sss, diffPath);
+            fromElems = fromElems.FilterBySubscripts(sss, diffPath, metadata);
 
             var fromArray = fromElems.Take(2).ToArray();
 
@@ -209,7 +229,7 @@ sealed internal class Aplyier
                     }
                     .SelectMany(e => e);
 
-                toElems = toElems.FilterBySubscripts(sss, diffPath);
+                toElems = toElems.FilterBySubscripts(sss, diffPath, metadata);
                 var toArray = toElems.Take(2).ToArray();
 
                 if (toArray.Length == 1)

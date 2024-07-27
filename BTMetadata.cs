@@ -1,17 +1,35 @@
-﻿using System.Xml.Linq;
+﻿using System.Reflection.PortableExecutable;
+using System.Xml.Linq;
 using System.Xml.Serialization;
 
 namespace BTModMerger;
 
 public class BTMetadata
 {
-    public static string Path { get; set; }
-
     public class IdMapping
     {
         public string Element { get; set; } = string.Empty;
         public string[] Ids { get; set; } = [];
     }
+
+    public static readonly BTMetadata Test = new()
+    {
+        Indexed = ["indexed"],
+        Indexes = ["indexes"],
+        Tricky = ["tricky"],
+        IndexByFilename = ["indexbyfilename"],
+        Partial = ["partial"],
+        IdMappings = [
+            new()
+            {
+                Element = "idmapped",
+                Ids = [
+                    "id0",
+                    "id1",
+                ],
+            },
+        ],
+    };
 
     public string[] Indexed { get; set; } = [];
     public string[] Indexes { get; set; } = [];
@@ -20,52 +38,49 @@ public class BTMetadata
     public string[] Partial { get; set; } = [];
     public IdMapping[] IdMappings { get; set; } = [];
 
-    public static BTMetadata Instance
-    {
-        get
-        {
-            if (_singleton != null) return _singleton;
-            lock (_lock)
-            {
-                if (_singleton != null) return _singleton;
-                _singleton = Load();
-                return _singleton;
-            }
-        }
-    }
-
     public string? GetId(XElement element)
         => _idMappingFunctions.TryGetValue(element.Name.Fancify().ToLower(), out var func)
             ? func(element)
             : element.GetBTAttributeCIS("Identifier")!;
 
-    private static readonly object _lock = new();
-    private static BTMetadata? _singleton = null;
+    public static BTMetadata Load(XDocument document)
+    {
+        var serializer = new XmlSerializer(typeof(BTMetadata));
+        using var reader = document.CreateReader();
+
+        var data = ((BTMetadata)serializer.Deserialize(reader)!);
+        data.Prepare();
+        return data;
+    }
+
+    public static BTMetadata Load(string path)
+    {
+        var serializer = new XmlSerializer(typeof(BTMetadata));
+
+        if (!File.Exists(path))
+        {
+            using var blank = File.Create(path);
+            var ret = new BTMetadata();
+            serializer.Serialize(blank, ret);
+            ret.Prepare();
+            return ret;
+        }
+
+        using var file = File.OpenRead(path);
+        var data = ((BTMetadata)serializer.Deserialize(file)!);
+        data.Prepare();
+        return data;
+    }
 
     [XmlIgnore]
     private Dictionary<string, Func<XElement, string?>> _idMappingFunctions = [];
 
     private BTMetadata() {}
 
-    private static BTMetadata Load()
+    private void Prepare()
     {
-        var serializer = new XmlSerializer(typeof(BTMetadata));
-
-        if (!File.Exists(Path))
-        {
-            using var blank = File.Create(Path);
-            var ret = new BTMetadata();
-            ret.ToLower();
-            serializer.Serialize(blank, ret);
-            ret.GenerateMappings();
-            return ret;
-        }
-
-        using var file = File.OpenRead(Path);
-        var data = ((BTMetadata)serializer.Deserialize(file)!);
-        data.ToLower();
-        data.GenerateMappings();
-        return data;
+        ToLower();
+        GenerateMappings();
     }
 
     private void ToLower()
@@ -101,7 +116,7 @@ public class BTMetadata
                         ? e =>
                         {
                             var parts = ids.Select(id => e.GetBTAttributeCIS(id)).ToArray();
-                            return parts.All(part => part is not null)
+                            return parts.Any(part => part is not null)
                                 ? string.Join(":", parts.Select(part => part ?? "btmm~~none"))
                                 : null;
                         }

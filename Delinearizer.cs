@@ -1,12 +1,15 @@
 ﻿using static BTModMerger.BTMMSchema;
 using static BTModMerger.ToolBase;
 using System.Xml.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace BTModMerger;
 
-static internal class Delinearizer
+public class Delinearizer(
+    ILogger<Delinearizer> logger
+)
 {
-    public static void Apply(string? inputPath, string? outputPath)
+    public void Apply(string? inputPath, string? outputPath)
     {
         var baseFile = string.IsNullOrWhiteSpace(inputPath)
             ? Console.OpenStandardInput()
@@ -20,7 +23,7 @@ static internal class Delinearizer
 
         if (input.Root is null || input.Root.Name != Elements.Diff)
         {
-            Log.Error($"({inputPath}) should be a BTMM diff xml.");
+            logger.LogError("({inputPath}) should be a BTMM diff xml.", inputPath);
             return;
         }
 
@@ -28,7 +31,7 @@ static internal class Delinearizer
         SaveResult(outputPath, to);
     }
 
-    public static XDocument Apply(XDocument input, string inputPath)
+    public XDocument Apply(XDocument input, string inputPath)
     {
         var to = new XDocument(Diff());
         var dbgPath = $"{inputPath}:Diff";
@@ -37,7 +40,7 @@ static internal class Delinearizer
         return to;
     }
 
-    private static void Delinearize(XElement input, XElement output, string dbgPath)
+    private void Delinearize(XElement input, XElement output, string dbgPath, string path = "")
     {
         dbgPath = CombineBTMMPaths(dbgPath, input.Name);
 
@@ -51,7 +54,12 @@ static internal class Delinearizer
         var originalPath = input.GetBTMMPath();
 
         if (string.IsNullOrEmpty(originalPath))
+        {
+            output.Add(input);
             return;
+        }
+
+        originalPath = CombineBTMMPaths(path, originalPath);
 
         var parts = SplitPath(originalPath);
         var target = output;
@@ -75,18 +83,19 @@ static internal class Delinearizer
 
         try
         {
+            if (input.Name == Elements.Into)
+            {
+                foreach (var child in input.Elements())
+                    Delinearize(child, output, dbgPath, originalPath);
+
+                return;
+            }
+
             var copy = new XElement(input);
 
             if (input.Name == Elements.RemoveElement ||
-                input.Name == Elements.UpdateAttributes ||
-                input.Name == Elements.Into)
+                input.Name == Elements.UpdateAttributes)
             {
-                if (input.Name == Elements.Into)
-                {
-                    foreach (var child in input.Elements())
-                        Delinearize(child, output, dbgPath);
-                }
-
                 copy.SetAttributeValue(Attributes.Path, parts[^1]);
                 target = target.Parent!;
             }
@@ -104,7 +113,7 @@ static internal class Delinearizer
         }
     }
 
-    private static void TryMoveAttributesToIntos(XElement from, string dbgPath)
+    private void TryMoveAttributesToIntos(XElement from, string dbgPath)
     {
         var fromPath = from.GetBTMMPath();
 

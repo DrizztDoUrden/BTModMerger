@@ -3,8 +3,10 @@ using System.Xml.Schema;
 
 using BTModMerger;
 
+namespace BTModMerger;
+
 // Taken mostly from https://stackoverflow.com/a/13048775/6078677
-static class XElementComparator
+public static class XElementComparator
 {
     private static class Xsi
     {
@@ -52,7 +54,8 @@ static class XElementComparator
 
             for (var innerIndex = outerIndex + 1; innerIndex < tmp.Count; ++innerIndex)
             {
-                if (tmp[outerIndex].request.GetBTMMPath() == tmp[innerIndex].request.GetBTMMPath() &&
+                if (tmp[outerIndex].container == tmp[innerIndex].container &&
+                    tmp[outerIndex].request.GetBTMMPath() == tmp[innerIndex].request.GetBTMMPath() &&
                     XNode.DeepEquals(tmp[outerIndex].item, tmp[innerIndex].item))
                 {
                     count += tmp[innerIndex].count;
@@ -67,48 +70,7 @@ static class XElementComparator
         return ret;
     }
 
-    public static XDocument Normalize(XDocument source, XmlSchemaSet? schema)
-    {
-        var havePSVI = false;
-        // validate, throw errors, add PSVI information
-        if (schema != null)
-        {
-            source.Validate(schema, null, true);
-            havePSVI = true;
-        }
-        return new XDocument(
-            source.Declaration,
-            source.Nodes().Select(n =>
-            {
-                // Remove comments, processing instructions, and text nodes that are
-                // children of XDocument.  Only white space text nodes are allowed as
-                // children of a document, so we can remove all text nodes.
-                if (n is XComment || n is XProcessingInstruction || n is XText)
-                    return null;
-                var e = n as XElement;
-                if (e != null)
-                    return NormalizeElement(e, havePSVI);
-                return n;
-            }
-            )
-        );
-    }
-
-    public static bool DeepEqualsWithNormalization(XDocument doc1, XDocument doc2, XmlSchemaSet? schemaSet = null)
-    {
-        var d1 = Normalize(doc1, schemaSet);
-        var d2 = Normalize(doc2, schemaSet);
-        return XNode.DeepEquals(d1, d2);
-    }
-
-    public static bool DeepEqualsWithNormalization(XElement e1, XElement e2, XmlSchemaSet? schemaSet = null)
-    {
-        var d1 = NormalizeElement(e1);
-        var d2 = NormalizeElement(e2);
-        return XNode.DeepEquals(d1, d2);
-    }
-
-    public static IEnumerable<XAttribute> NormalizeAttributes(XElement element, bool havePSVI = false)
+    public static IEnumerable<XAttribute> NormalizeAttributes(XElement element/*, bool havePSVI = false*/)
     {
         return element.Attributes()
                 .Where(a => !a.IsNamespaceDeclaration &&
@@ -119,89 +81,71 @@ static class XElementComparator
                 .Select(
                     a =>
                     {
-                        if (havePSVI)
-                        {
-                            var dt = a.GetSchemaInfo()!.SchemaType!.TypeCode;
-                            switch (dt)
-                            {
-                                case XmlTypeCode.Boolean:
-                                    return new XAttribute(a.Name, (bool)a);
-                                case XmlTypeCode.DateTime:
-                                    return new XAttribute(a.Name, (DateTime)a);
-                                case XmlTypeCode.Decimal:
-                                    return new XAttribute(a.Name, (decimal)a);
-                                case XmlTypeCode.Double:
-                                    return new XAttribute(a.Name, (double)a);
-                                case XmlTypeCode.Float:
-                                    return new XAttribute(a.Name, (float)a);
-                                case XmlTypeCode.HexBinary:
-                                case XmlTypeCode.Language:
-                                    return new XAttribute(a.Name,
-                                        ((string)a).ToLower());
-                            }
-                        }
+                        // if (!havePSVI)
                         return a;
+
+                        //var dt = a.GetSchemaInfo()!.SchemaType!.TypeCode;
+                        //return dt switch
+                        //{
+                        //    XmlTypeCode.Boolean => new XAttribute(a.Name, (bool)a),
+                        //    XmlTypeCode.DateTime => new XAttribute(a.Name, (DateTime)a),
+                        //    XmlTypeCode.Decimal => new XAttribute(a.Name, (decimal)a),
+                        //    XmlTypeCode.Double => new XAttribute(a.Name, (double)a),
+                        //    XmlTypeCode.Float => new XAttribute(a.Name, (float)a),
+                        //    XmlTypeCode.HexBinary or XmlTypeCode.Language => new XAttribute(a.Name, ((string)a).ToLower()),
+                        //    _ => a,
+                        //};
                     }
                 );
     }
 
-    public static XNode? NormalizeNode(XNode node, bool havePSVI = false)
+    public static XNode? NormalizeNode(XNode node/*, bool havePSVI = false*/)
     {
-        // trim comments and processing instructions from normalized tree
-        if (node is XComment || node is XProcessingInstruction)
-            return null;
-        var e = node as XElement;
-        if (e != null)
-            return NormalizeElement(e, havePSVI);
-        // Only thing left is XCData and XText, so clone them
-        return node;
+        return node switch
+        {
+            // trim comments and processing instructions from normalized tree
+            XComment or XProcessingInstruction => null,
+            XElement e => NormalizeElement(e/*, havePSVI*/),
+            // Only thing left is XCData and XText, so clone them
+            _ => node
+        };
     }
 
-    public static XElement NormalizeElement(XElement element, bool havePSVI = false)
+    public static XElement NormalizeElement(XElement element/*, bool havePSVI = false*/)
     {
-        if (havePSVI)
-        {
-            var dt = element.GetSchemaInfo();
-            switch (dt!.SchemaType!.TypeCode)
-            {
-                case XmlTypeCode.Boolean:
-                    return new XElement(element.Name,
-                        NormalizeAttributes(element, havePSVI),
-                        (bool)element);
-                case XmlTypeCode.DateTime:
-                    return new XElement(element.Name,
-                        NormalizeAttributes(element, havePSVI),
-                        (DateTime)element);
-                case XmlTypeCode.Decimal:
-                    return new XElement(element.Name,
-                        NormalizeAttributes(element, havePSVI),
-                        (decimal)element);
-                case XmlTypeCode.Double:
-                    return new XElement(element.Name,
-                        NormalizeAttributes(element, havePSVI),
-                        (double)element);
-                case XmlTypeCode.Float:
-                    return new XElement(element.Name,
-                        NormalizeAttributes(element, havePSVI),
-                        (float)element);
-                case XmlTypeCode.HexBinary:
-                case XmlTypeCode.Language:
-                    return new XElement(element.Name,
-                        NormalizeAttributes(element, havePSVI),
-                        ((string)element).ToLower());
-                default:
-                    return new XElement(element.Name,
-                        NormalizeAttributes(element, havePSVI),
-                        element.Nodes().Select(n => NormalizeNode(n, havePSVI))
-                    );
-            }
-        }
-        else
-        {
-            return new XElement(element.Name,
-                NormalizeAttributes(element, havePSVI),
-                element.Nodes().Select(n => NormalizeNode(n, havePSVI))
-            );
-        }
+        //if (havePSVI)
+        //{
+        //    var dt = element.GetSchemaInfo();
+        //    return dt!.SchemaType!.TypeCode switch
+        //    {
+        //        XmlTypeCode.Boolean => new XElement(element.Name,
+        //                                NormalizeAttributes(element, havePSVI),
+        //                                (bool)element),
+        //        XmlTypeCode.DateTime => new XElement(element.Name,
+        //                                NormalizeAttributes(element, havePSVI),
+        //                                (DateTime)element),
+        //        XmlTypeCode.Decimal => new XElement(element.Name,
+        //                                NormalizeAttributes(element, havePSVI),
+        //                                (decimal)element),
+        //        XmlTypeCode.Double => new XElement(element.Name,
+        //                                NormalizeAttributes(element, havePSVI),
+        //                                (double)element),
+        //        XmlTypeCode.Float => new XElement(element.Name,
+        //                                NormalizeAttributes(element, havePSVI),
+        //                                (float)element),
+        //        XmlTypeCode.HexBinary or XmlTypeCode.Language => new XElement(element.Name,
+        //                                NormalizeAttributes(element, havePSVI),
+        //                                ((string)element).ToLower()),
+        //        _ => new XElement(element.Name,
+        //                                NormalizeAttributes(element, havePSVI),
+        //                                element.Nodes().Select(n => NormalizeNode(n, havePSVI))
+        //                            ),
+        //    };
+        //}
+
+        return new XElement(element.Name,
+            NormalizeAttributes(element/*, havePSVI*/),
+            element.Nodes().Select(n => NormalizeNode(n/*, havePSVI*/))
+        );
     }
 }

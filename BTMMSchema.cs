@@ -22,6 +22,13 @@ public static class BTMMSchema
     public static readonly string RemoveNamespaceAlias = "remove";
     public static readonly XNamespace RemoveNamespace = $"{Namespace.NamespaceName}/FakeURI/Remove";
 
+    public static readonly Dictionary<XNamespace, string> NamespaceAliases = new()
+    {
+        [Namespace] = NamespaceAlias,
+        [AddNamespace] = AddNamespaceAlias,
+        [RemoveNamespace] = RemoveNamespaceAlias,
+    };
+
     public static class Elements
     {
         public static readonly XName Override = nameof(Override);
@@ -37,7 +44,6 @@ public static class BTMMSchema
     public static class Attributes
     {
         public static readonly XName Path = Namespace + nameof(Path);
-        public static readonly XName Value = Namespace + nameof(Value);
         public static readonly XName Amount = Namespace + nameof(Amount);
         public static readonly XName File = Namespace + nameof(File);
     }
@@ -93,6 +99,10 @@ public static class BTMMSchema
 
     public static XAttribute SetAttribute(string name, string? value) => new(AddNamespace + name, value ?? "");
     public static XAttribute RemoveAttribute(string name) => new(RemoveNamespace + name, "");
+
+    public static XAttribute AmountAttribute(int value) => new(Attributes.Amount, value);
+    public static XAttribute PathAttribute(string value) => new(Attributes.Path, value);
+    public static XAttribute FileAttribute(string value) => new(Attributes.File, value);
 
     public static XElement UpdateAttributes() => new(Elements.UpdateAttributes);
 

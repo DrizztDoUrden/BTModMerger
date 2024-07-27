@@ -5,7 +5,7 @@ using static BTModMerger.BTMMSchema;
 
 namespace BTModMerger;
 
-static internal class ToolBase
+public static class ToolBase
 {
     public static void SaveResult(string? outputPath, XDocument? result)
     {
@@ -30,36 +30,6 @@ static internal class ToolBase
             outputFile.Dispose();
     }
 
-    public static class Log
-    {
-        public static void Info(string message)
-        {
-            var before = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.Error.Write("[Info] ");
-            Console.ForegroundColor = before;
-            Console.Error.WriteLine(message);
-        }
-
-        public static void Warning(string message)
-        {
-            var before = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Error.Write("[Warning] ");
-            Console.ForegroundColor = before;
-            Console.Error.WriteLine(message);
-        }
-
-        public static void Error(string message)
-        {
-            var before = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.Error.Write("[Error] ");
-            Console.ForegroundColor = before;
-            Console.Error.WriteLine(message);
-        }
-    }
-
     public static (int start, int end) FindSubscript(string from, string diffPath)
     {
         var start = from.IndexOf('[');
@@ -71,6 +41,9 @@ static internal class ToolBase
         var level = from[end] == '[' ? 2 : 0;
         while (level > 0)
         {
+            if (end + 1 == from.Length)
+                throw new InvalidDataException("Missing ']' character in a path subscript operator.");
+
             end = from.IndexOfAny(['[', ']'], end + 1);
             level += from[end] == '[' ? 1 : -1;
         }
@@ -105,12 +78,12 @@ static internal class ToolBase
         return (null, int.Parse(subscript));
     }
 
-    public static IEnumerable<XElement> FilterBySubscript(this IEnumerable<XElement> elements, string? subscript, string diffPath)
+    public static IEnumerable<XElement> FilterBySubscript(this IEnumerable<XElement> elements, string? subscript, string diffPath, BTMetadata metadata)
     {
         var (id, idx) = ParseSubscript(subscript);
 
         if (id is not null)
-            return elements.Where(e => e.GetBTIdentifier() == id);
+            return elements.Where(e => e.GetBTIdentifier(metadata) == id);
         if (idx != -1)
             return elements.Skip(idx).Take(1);
         return elements;
@@ -124,10 +97,10 @@ static internal class ToolBase
         );
     }
 
-    public static IEnumerable<XElement> FilterBySubscripts(this IEnumerable<XElement> elements, (string? ss0, string? ss1) subscripts, string diffPath)
+    public static IEnumerable<XElement> FilterBySubscripts(this IEnumerable<XElement> elements, (string? ss0, string? ss1) subscripts, string diffPath, BTMetadata metadata)
     {
-        elements = FilterBySubscript(elements, subscripts.ss0, diffPath);
-        elements = FilterBySubscript(elements, subscripts.ss1, diffPath);
+        elements = FilterBySubscript(elements, subscripts.ss0, diffPath, metadata);
+        elements = FilterBySubscript(elements, subscripts.ss1, diffPath, metadata);
         return elements;
     }
 
@@ -136,18 +109,14 @@ static internal class ToolBase
 
     public static string Fancify(this XName name)
     {
-        if (name.Namespace == Namespace)
-            return $"{NamespaceAlias}:{name.LocalName}";
-        if (name.Namespace == AddNamespace)
-            return $"{AddNamespaceAlias}:{name.LocalName}";
-        if (name.Namespace == RemoveNamespace)
-            return $"{RemoveNamespaceAlias}:{name.LocalName}";
-        return name.ToString();
+        return NamespaceAliases.TryGetValue(name.Namespace, out var alias)
+            ? $"{alias}:{name.LocalName}"
+            : name.ToString();
     }
 
-    public static string CombineBTMMPaths(params string[] paths)
+    public static string CombineBTMMPaths(params string?[] paths)
         => string.Join('/', paths.Where(p => !string.IsNullOrEmpty(p)));
 
-    public static string CombineBTMMPaths(string path, XName newPart)
+    public static string CombineBTMMPaths(string? path, XName newPart)
         => CombineBTMMPaths(path, newPart.Fancify());
 }

@@ -1,12 +1,15 @@
 ﻿using static BTModMerger.BTMMSchema;
 using static BTModMerger.ToolBase;
 using System.Xml.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace BTModMerger;
 
-static internal class Linearizer
+public class Linearizer(
+    ILogger<Linearizer> logger
+)
 {
-    public static void Apply(string? inputPath, string? outputPath)
+    public void Apply(string? inputPath, string? outputPath)
     {
         var baseFile = string.IsNullOrWhiteSpace(inputPath)
             ? Console.OpenStandardInput()
@@ -20,7 +23,7 @@ static internal class Linearizer
 
         if (input.Root is null || input.Root.Name != Elements.Diff)
         {
-            Log.Error($"({inputPath}) should be a BTMM diff xml.");
+            logger.LogError("({inputPath}) should be a BTMM diff xml.", inputPath);
             return;
         }
 
@@ -28,14 +31,14 @@ static internal class Linearizer
         SaveResult(outputPath, to);
     }
 
-    public static XDocument Apply(XDocument input, string inputPath)
+    public XDocument Apply(XDocument input, string inputPath)
     {
         var to = new XDocument(Diff());
         Linearize(input.Root!, to.Root!, "", inputPath);
         return to;
     }
 
-    private static void Linearize(XElement input, XElement output, string path, string dbgPath)
+    private void Linearize(XElement input, XElement output, string path, string dbgPath)
     {
         if (input.Name == Elements.Diff)
         {
@@ -76,6 +79,7 @@ static internal class Linearizer
 
                 updateAttributes.Add(attribute);
             }
+
             return;
         }
 

@@ -1,28 +1,35 @@
-﻿using System.Xml.Linq;
+﻿using System.IO;
+using System.Xml.Linq;
+
+using Microsoft.Extensions.Logging;
 
 using static BTModMerger.BTMMSchema;
 using static BTModMerger.ToolBase;
 
 namespace BTModMerger;
 
-internal static class Differ
+public class Differ(
+    ILogger<Differ> logger,
+    BTMetadata metadata,
+    Delinearizer delinearizer
+)
 {
-    public static void Apply(string? basePath, string modPath, string? outputPath, bool alwaysOverride, bool delinearize)
+    public void Apply(string? basePath, string modPath, string? outputPath, bool alwaysOverride, bool delinearize)
     {
         var (@base, mod) = Load(basePath, modPath);
-        var output = Process(@base, basePath, mod, modPath, alwaysOverride);
+        var output = Apply(@base, basePath ?? "cin", mod, modPath, alwaysOverride);
 
         if (output.Root!.HasElements)
         {
             if (delinearize)
-                output = Delinearizer.Apply(output, "temporary");
+                output = delinearizer.Apply(output, "temporary");
             SaveResult(outputPath, output);
         }
         else if (File.Exists(outputPath))
             File.Delete(outputPath);
     }
 
-    private static (XDocument @base, XDocument mod) Load(string? basePath, string modPath)
+    private (XDocument @base, XDocument mod) Load(string? basePath, string modPath)
     {
         XDocument @base;
 
@@ -42,21 +49,21 @@ internal static class Differ
         return (@base, mod);
     }
 
-    private static XDocument Process(XDocument @base, string? basePath, XDocument mod, string modPath, bool alwaysOverride)
+    public XDocument Apply(XDocument @base, string basePath, XDocument mod, string modPath, bool alwaysOverride)
     {
         var baseRoot = @base.Root;
         var modRoot = mod.Root;
 
         if (baseRoot is null)
-            throw new InvalidOperationException($"Attempt to process empty file: {basePath ?? "cin"}");
+            throw new InvalidOperationException($"Attempt to process empty file: {basePath}");
         if (modRoot is null)
             throw new InvalidOperationException($"Attempt to process empty file: {modPath}");
 
-        if (baseRoot.IsBTOverride() && baseRoot.Elements().Take(2).Count() == 1)
-            baseRoot = baseRoot.Elements().First();
+        if (modRoot.IsBTOverride() && modRoot.Elements().Take(2).Count() == 1)
+            modRoot = modRoot.Elements().First();
 
         if (baseRoot.Name != modRoot.Name && !modRoot.IsBTOverride() && baseRoot.Name != Elements.FusedBase)
-            Console.Error.WriteLine("[Warning] Attempt to make a diff from incompatible mod-base pair. E.g. jobs.xml should be provided with vanilla jobs.xml as a base file.");
+            logger.LogWarning ("Attempt to make a diff from incompatible mod-base pair. E.g. jobs.xml should be provided with vanilla jobs.xml as a base file.");
 
         var to = Diff();
         var toDocument = new XDocument(to);
@@ -64,7 +71,7 @@ internal static class Differ
         return toDocument;
     }
 
-    private static void SewageDisposal(List<(XElement @base, XElement item, bool fromOverride, string path)> pile)
+    private void SewageDisposal(List<(XElement @base, XElement item, bool fromOverride, string path)> pile)
     {
         for (var i = 0; i < pile.Count; ++i)
         {
@@ -79,21 +86,21 @@ internal static class Differ
         }
     }
 
-    private static (XElement? toItem, string path) FindBaseItem(XElement element, XElement toContainer, XElement fromContainer, string root = "")
+    private (XElement? toItem, string path) FindBaseItem(XElement element, XElement toContainer, XElement fromContainer, string root = "")
     {
         var childName = element.Name;
         var targets = toContainer.Elements(childName).ToArray();
         var fromItems = fromContainer.Elements(childName);
 
-        var elementId = element.GetBTIdentifier();
-        var elementIsIndexed = element.IsIndexed() || elementId is null && targets.Length > 1 || elementId is not null && targets.Count(e => e.GetBTIdentifier() == elementId) > 1;
+        var elementId = element.GetBTIdentifier(metadata);
+        var elementIsIndexed = element.IsIndexed(metadata) || elementId is null && targets.Length > 1 || elementId is not null && targets.Count(e => e.GetBTIdentifier(metadata) == elementId) > 1;
 
         var elementIndex = -1;
 
         if (elementId is not null)
         {
-            targets = targets.Where(t => t.GetBTIdentifier() == elementId).ToArray();
-            fromItems = fromItems.Where(t => t.GetBTIdentifier() == elementId);
+            targets = targets.Where(t => t.GetBTIdentifier(metadata) == elementId).ToArray();
+            fromItems = fromItems.Where(t => t.GetBTIdentifier(metadata) == elementId);
         }
 
         if (elementIsIndexed)
@@ -120,7 +127,18 @@ internal static class Differ
         return childPath;
     }
 
-    private static bool ProcessRootElement(XElement baseRoot, XElement modRoot, XElement to, bool alwaysOverride, string modFilename)
+    private string MakeChildPath(XElement child, XElement baseContainer)
+    {
+        var childPath = child.Name.Fancify();
+        var childId = child.GetBTIdentifier(metadata);
+        var clones = baseContainer.Elements(child.Name).Where(e => e.GetBTIdentifier(metadata) == childId).ToArray();
+        var childIndex = clones.Length > 1 ? Array.IndexOf(clones, child) : -1;
+        if (childId is not null) childPath += $"[@{childId}]";
+        if (childIndex != -1) childPath += $"[{childIndex}]";
+        return childPath;
+    }
+
+    private bool ProcessRootElement(XElement baseRoot, XElement modRoot, XElement to, bool alwaysOverride, string modFilename)
     {
         var hasSomething = false;
 
@@ -137,10 +155,10 @@ internal static class Differ
 
                 if (@base.Name == Elements.FusedBase)
                 {
-                    var ownId = p.item.GetBTIdentifier();
+                    var ownId = p.item.GetBTIdentifier(metadata);
                     var clones = @base.Elements(p.item.Name);
                     clones = clones.Where(e => e.Attribute(Attributes.File)?.Value is null || e.Attribute(Attributes.File)?.Value == modFilename);
-                    if (ownId is not null) clones = clones.Where(e => e.GetBTIdentifier() == ownId);
+                    if (ownId is not null) clones = clones.Where(e => e.GetBTIdentifier(metadata) == ownId);
 
                     var items = clones.Take(2).ToArray();
 
@@ -151,10 +169,10 @@ internal static class Differ
                 }
 
                 return p.item.HasAttributes
-                    ? [(@base, p.item, p.fromOverride, CombineBTMMPaths(p.path, FormPath(p.item.Name.ToString(), p.item.GetBTIdentifier(), -1)))]
+                    ? [(@base, p.item, p.fromOverride, CombineBTMMPaths(p.path, FormPath(p.item.Name.ToString(), p.item.GetBTIdentifier(metadata), -1)))]
                     : p.item.Elements()
-                .Select(e
-                            => (@base, e, p.fromOverride, CombineBTMMPaths(p.path, FormPath(p.item.Name.ToString(), p.item.GetBTIdentifier(), -1))));
+                        .Select(e
+                            => (@base, e, p.fromOverride, CombineBTMMPaths(p.path, FormPath(p.item.Name.ToString(), p.item.GetBTIdentifier(metadata), -1))));
             }
             ).ToList();
 
@@ -162,8 +180,8 @@ internal static class Differ
         SewageDisposal(pile);
 
         // now we have proper children that are not overrides and do not, I repeat, do not give us rectum cancer
-
-        if (pile.Count == 1 && (pile[0].fromOverride || pile[0].item == modRoot) && pile[0].item.HasAttributes)
+        // Some files have a prefab as root entity. It is somewhat more convenient to handle them separately
+        if (pile.Count == 1 && pile[0].item == (modRoot.IsBTOverride() ? modRoot.Elements().FirstOrDefault() : modRoot) && pile[0].item.HasAttributes)
         {
             modRoot = pile[0].item;
             var path = pile[0].path;
@@ -178,7 +196,9 @@ internal static class Differ
 
         foreach (var (@base, child, isOverride, path) in pile)
         {
-            if (!isOverride && !alwaysOverride)
+            var (baseChild, childPath) = FindBaseItem(child, @base, modRoot, path);
+
+            if (!isOverride && !alwaysOverride || baseChild is null)
             {
                 if (!justAdd.TryGetValue(path, out var list))
                 {
@@ -190,22 +210,7 @@ internal static class Differ
                 continue;
             }
 
-            var (baseChild, childPath) = FindBaseItem(child, @base, modRoot, path);
-
-            if (baseChild is not null)
-            {
-                hasSomething |= ProcessOverridden(baseChild, child, to, modFilename, childPath);
-            }
-            else
-            {
-                // Rectum cancer of overriding non-existant elements
-                if (!justAdd.TryGetValue(path, out var list))
-                {
-                    list = [];
-                    justAdd.Add(path, list);
-                }
-                list.Add(child);
-            }
+            hasSomething |= ProcessOverridden(baseChild, child, to, modFilename, childPath);
         }
 
         foreach (var (path, list) in justAdd)
@@ -214,22 +219,41 @@ internal static class Differ
             hasSomething = true;
         }
 
+        if (alwaysOverride || baseRoot.Name == Elements.FusedBase)
+            return hasSomething;
+
+        var toRemove = new List<string>();
+
+        foreach (var child in baseRoot.Elements())
+        {
+            var (modChild, _) = FindBaseItem(child, modRoot, baseRoot);
+
+            // Processed in the first loop
+            if (modChild is not null)
+                continue;
+
+            toRemove.Add(CombineBTMMPaths(baseRoot.Name.Fancify(), MakeChildPath(child, baseRoot)));
+            hasSomething = true;
+        }
+
+        foreach (var path in toRemove)
+            to.Add(RemoveElement(path));
+
         return hasSomething;
     }
 
-    private static bool ProcessOverridden(XElement @base, XElement mod, XElement to, string modFilename, string path)
+    private bool ProcessOverridden(XElement @base, XElement mod, XElement to, string modFilename, string path)
     {
         var hasSomething = false;
 
         ProcessOverriddenAttributes(@base, mod, to, path, ref hasSomething);
 
-        var toAdd = new List<XElement>();
         var toRemove = new List<XElement>();
         var tricky = new HashSet<XName>();
 
         foreach (var child in mod.Elements())
         {
-            if (child.IsTricky())
+            if (child.IsTricky(metadata))
             {
                 tricky.Add(child.Name);
                 continue;
@@ -250,7 +274,7 @@ internal static class Differ
 
         foreach (var child in @base.Elements())
         {
-            if (child.IsTricky())
+            if (child.IsTricky(metadata))
             {
                 tricky.Add(child.Name);
                 continue;
@@ -262,7 +286,7 @@ internal static class Differ
             if (modChild is not null)
                 continue;
 
-            toRemove.AddRange(RemoveElements(child));
+            toRemove.Add(RemoveElement(CombineBTMMPaths(path, MakeChildPath(child, @base))));
             hasSomething = true;
         }
 
@@ -281,17 +305,12 @@ internal static class Differ
                     continue;
 
                 if (delta > 0)
-                {
                     to.Add(AddElements(path, modCount, item));
-                }
                 else
-                {
                     toRemove.Add(RemoveElement(path, -delta, item));
-                }
 
                 hasSomething = true;
             }
-
 
             foreach (var (item, baseCount) in fromBaseDedup)
             {
@@ -302,34 +321,21 @@ internal static class Differ
                     continue;
 
                 if (delta > 0)
-                {
-                    if (delta == 1)
-                        toAdd.Add(item);
-                    else
-                        to.Add(AddElements(path, modCount, item));
-                }
+                    to.Add(AddElements(path, modCount, item));
                 else
-                {
                     toRemove.Add(RemoveElement(path, -delta, item));
-                }
 
                 hasSomething = true;
             }
         }
 
-        foreach (var item in toAdd)
-        {
-            item.Attribute(Attributes.File)?.Remove();
-            to.Add(AddElements(path, 1, item));
-        }
-
         foreach (var item in toRemove)
-            to.Add(RemoveElement(path, 1, item));
+            to.Add(item);
 
         return hasSomething;
     }
 
-    private static void ProcessOverriddenAttributes(XElement @base, XElement mod, XElement to, string path, ref bool hasSomething)
+    private void ProcessOverriddenAttributes(XElement @base, XElement mod, XElement to, string path, ref bool hasSomething)
     {
         XElement? updateAttributes = null;
 

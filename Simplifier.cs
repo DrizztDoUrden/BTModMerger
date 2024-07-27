@@ -1,16 +1,22 @@
 ﻿using System.Xml.Linq;
 
+using Microsoft.Extensions.Logging;
+
 using static BTModMerger.BTMMSchema;
 using static BTModMerger.CLI;
 using static BTModMerger.ToolBase;
 
 namespace BTModMerger;
 
-static internal class Simplifier
+public class Simplifier(
+    ILogger<Simplifier> logger,
+    BTMetadata metadata,
+    Delinearizer delinearizer
+)
 {
     public readonly record struct Options(AddNamespacePolicy AddNamespacePolicy, ConflictHandlingPolicy conflictHandlingPolicy);
 
-    public static void Apply(string? inputPath, string? outputPath, in Options options, ConflictsFileInfo? conflicts)
+    public void Apply(string? inputPath, string? outputPath, in Options options, ConflictsFileInfo? conflicts)
     {
         var baseFile = string.IsNullOrWhiteSpace(inputPath)
             ? Console.OpenStandardInput()
@@ -24,7 +30,7 @@ static internal class Simplifier
 
         if (input.Root is null || input.Root.Name != Elements.Diff)
         {
-            Log.Error($"({inputPath}) should be a BTMM diff xml.");
+            logger.LogError("({inputPath}) should be a BTMM diff xml.", inputPath);
             return;
         }
 
@@ -42,12 +48,12 @@ static internal class Simplifier
         if (conflicts is not null)
         {
             if (conflicts.Delinearize)
-                conflictsDocument = Delinearizer.Apply(conflictsDocument!, conflicts.Path.FullName);
+                conflictsDocument = delinearizer.Apply(conflictsDocument!, conflicts.Path.FullName);
             conflictsDocument!.Save(conflicts!.Path.FullName);
         }
     }
 
-    public static XDocument Apply(XDocument input, string? inputPath, in Options options, XElement? conflictsRoot)
+    public XDocument Apply(XDocument input, string inputPath, in Options options, XElement? conflictsRoot)
     {
         var to = new XDocument(input);
         var dbgPath = $"{inputPath}:Diff";
@@ -55,7 +61,7 @@ static internal class Simplifier
         return to;
     }
 
-    private static void Simplify(XElement output, string dbgPath, in Options options, XElement? conflictsRoot)
+    private void Simplify(XElement output, string dbgPath, in Options options, XElement? conflictsRoot)
     {
         dbgPath = CombineBTMMPaths(dbgPath, output.Name);
 
@@ -72,6 +78,8 @@ static internal class Simplifier
 
         if (output.Name == Elements.Into)
         {
+            var ownPath = output.GetBTMMPath();
+
             while (true)
             {
                 foreach (var child in output.Elements(Elements.Into).ToArray())
@@ -83,22 +91,55 @@ static internal class Simplifier
 
                 foreach (var child in output.Elements().ToArray())
                 {
-                    if (child.Parent is null || child.Name != Elements.Into)
+                    if (child.Parent is null || child.Name == Elements.Into)
                         continue; // It has been processed already
                     Simplify(child, dbgPath, options, conflictsRoot);
                 }
 
-                if (output.Elements().Take(2).Count() != 1 || output.Elements().FirstOrDefault()!.Name != Elements.Into)
+                var children = output.Elements().Take(2).ToArray();
+
+                if (children.Length != 1 ||
+                    children[0].Name != Elements.Into &&
+                    children[0].Name != Elements.UpdateAttributes)
                     break;
 
+                var exParent = output.Parent!;
+                var theOnlyChild = children[0];
                 output.Remove();
-                output = output.Elements().FirstOrDefault()!;
+                theOnlyChild.SetAttributeSorting(Attributes.Path, CombineBTMMPaths(ownPath, theOnlyChild.GetBTMMPath()));
+                exParent.Add(theOnlyChild);
+                output = theOnlyChild;
+
+                if (output.Name != Elements.Into)
+                    break;
             }
 
-            if (!output.HasElements)
-                output.Remove();
+            if (output.Name == Elements.Into)
+            {
+                if (!output.HasElements)
+                {
+                    if (output.HasAttributes)
+                    {
+                        var parent = output.Parent!;
 
-            return;
+                        var updateAttrs = parent.Elements(Elements.UpdateAttributes)
+                            .Where(e => e.GetBTMMPath() == ownPath)
+                            .FirstOrDefault();
+
+                        if (updateAttrs is null)
+                        {
+                            output.Name = Elements.UpdateAttributes;
+                            return;
+                        }
+
+                        CopyAttributes(output, updateAttrs, dbgPath, options.conflictHandlingPolicy, conflictsRoot);
+                    }
+
+                    output.Remove();
+                }
+
+                return;
+            }
         }
 
         if (output.Name == Elements.UpdateAttributes)
@@ -141,7 +182,7 @@ static internal class Simplifier
             var ownPath = output.GetBTMMPath();
             if (ownPath is null)
             {
-                Log.Error($"btmm:RemoveElements lacks btmm:Path at {dbgPath}");
+                logger.LogError("btmm:RemoveElements lacks btmm:Path at {dbgPath}", dbgPath);
                 return;
             }
 
@@ -196,7 +237,7 @@ static internal class Simplifier
         }
     }
 
-    private static XElement NormalizeContent(XElement element)
+    private XElement NormalizeContent(XElement element)
     {
         var content = new XElement(element);
         content.Name = content.Name.LocalName;
@@ -205,7 +246,7 @@ static internal class Simplifier
         return XElementComparator.NormalizeElement(content);
     }
 
-    public static void CopyAttributes(XElement from, XElement to, string dbgPath, ConflictHandlingPolicy conflictHandlingPolicy, XElement? conflictsRoot)
+    public void CopyAttributes(XElement from, XElement to, string dbgPath, ConflictHandlingPolicy conflictHandlingPolicy, XElement? conflictsRoot)
     {
         var conflicts = new Dictionary<XName, string>();
 
@@ -223,7 +264,12 @@ static internal class Simplifier
                     switch (conflictHandlingPolicy)
                     {
                         case ConflictHandlingPolicy.Override:
-                            Log.Warning($"Duplicate attributes at {dbgPath}.{attr.Name.Fancify()}: <{attr.Value}> vs <{existing.Value}>, ignoring the later one");
+                            logger.LogWarning("Duplicate attributes at {dbgPath}.{attrName}: <{attrValue}> vs <{existingValue}>, ignoring the later one",
+                                dbgPath,
+                                attr.Name.Fancify(),
+                                attr.Value,
+                                existing.Value
+                            );
                             conflicts.Add(attr.Name, attr.Value);
                             break;
                         case ConflictHandlingPolicy.Error:
@@ -250,12 +296,12 @@ static internal class Simplifier
 
                 if (curName.Namespace == XNamespace.None)
                 {
-                    var curId = current.GetBTIdentifier();
+                    var curId = current.GetBTIdentifier(metadata);
 
                     // This index calculation is probably completely incorrect
                     var clones = (current.Parent
                         ?.Elements(curName) ?? [])
-                        .Where(e => e.GetBTIdentifier() == curId)
+                        .Where(e => e.GetBTIdentifier(metadata) == curId)
                         .ToList();
 
                     var index = clones.Count > 1 ? clones.IndexOf(current) : -1;
@@ -293,5 +339,7 @@ static internal class Simplifier
             foreach (var conflict in conflicts)
                 update.SetAttributeValue(conflict.Key, conflict.Value);
         }
+
+        to.SortAttributes();
     }
 }
