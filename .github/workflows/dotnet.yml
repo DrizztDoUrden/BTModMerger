@@ -27,9 +27,9 @@ jobs:
     - name: Test
       run: dotnet test --configuration Release --no-build --verbosity normal
         -p:coverletOutput=lcov.info -p:CollectCoverage=true -p:CoverletOutputFormat=lcov
-        -p:Exclude=\"[BTModMerger.Tests]*,[BTModMerger.Core.Tests]*\"
+        -p:Exclude=\"[BTModMerger.Tests]*\"
     - name: coveralls
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{secrets.GITHUB_TOKEN }}
-        path-to-lcov: BTModMerger.Core.Tests/lcov.info
+        path-to-lcov: BTModMerger.Tests/lcov.info

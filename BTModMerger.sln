@@ -5,8 +5,6 @@ VisualStudioVersion = 17.11.35103.136
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTModMerger.Core", "BTModMerger.Core\BTModMerger.Core.csproj", "{20CCD083-11D1-4C08-B23C-AD6588C3784B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTModMerger.Core.Tests", "BTModMerger.Core.Tests\BTModMerger.Core.Tests.csproj", "{8D2E3492-E802-4A2E-83AF-109D932A32CC}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{59AD729D-6E44-43A8-A334-F966C6C01225}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{2125F615-14AA-4A4C-9EFD-EAB07330AF84}"
@@ -37,10 +35,6 @@ Global
 		{20CCD083-11D1-4C08-B23C-AD6588C3784B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{20CCD083-11D1-4C08-B23C-AD6588C3784B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{20CCD083-11D1-4C08-B23C-AD6588C3784B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8D2E3492-E802-4A2E-83AF-109D932A32CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8D2E3492-E802-4A2E-83AF-109D932A32CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8D2E3492-E802-4A2E-83AF-109D932A32CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8D2E3492-E802-4A2E-83AF-109D932A32CC}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4A97DA22-77F9-4581-9CE5-E2E1DB741D02}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4A97DA22-77F9-4581-9CE5-E2E1DB741D02}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4A97DA22-77F9-4581-9CE5-E2E1DB741D02}.Release|Any CPU.ActiveCfg = Release|Any CPU
