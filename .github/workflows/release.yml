@@ -75,3 +75,5 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         draft: true
         allowUpdates: true
+        replacesArtifacts: true
+        tag: v${{ inputs.VersionMajor }}.${{ inputs.VersionMinor }}.${{ inputs.VersionPatch }}
