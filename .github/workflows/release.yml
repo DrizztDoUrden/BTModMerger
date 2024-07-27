@@ -16,8 +16,6 @@ on:
         type: boolean
 
 env:
-    CURRENT_VERSION: v${{ inputs.VersionMajor }}.${{ inputs.VersionMinor }}.${{ inputs.VersionPatch }}
-    PREV_VERSION: v${{ inputs.VersionMajor }}.${{ inputs.VersionMinor }}.${{ inputs.VersionPatch - 1 }}
     PR_BODY: |
       [![Coverage Status](https://badge.coveralls.io/repos/github/DrizztDoUrden/BTModMerger/badge.svg?tag=${{ inputs.CurrentVersion }})](https://badge.coveralls.io/github/DrizztDoUrden/BTModMerger?tag=${{ inputs.CurrentVersion }}) [![CodeQL](https://github.com/DrizztDoUrden/BTModMerger/actions/workflows/codeql.yml/badge.svg?tag=${{ inputs.CurrentVersion }})](https://github.com/DrizztDoUrden/BTModMerger/actions/workflows/codeql.yml)
       ^ fix link here
