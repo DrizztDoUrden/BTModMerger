@@ -27,7 +27,7 @@ jobs:
       run: dotnet build --configuration PublishSC --no-restore
 
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --configuration Publish --no-build --verbosity normal
 
     - name: Publish Portable
       id: portable
