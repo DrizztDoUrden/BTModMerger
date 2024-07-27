@@ -1,4 +1,4 @@
-![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/DrizztDoUrden/0bfa39878609d7f8110ab86ed26c883b/raw/btmm-code-coverage.json)
+[![Coverage Status](https://badge.coveralls.io/repos/github/DrizztDoUrden/BTModMerger/badge.svg?branch=master)](https://badge.coveralls.io/github/DrizztDoUrden/BTModMerger?branch=master)
 
 # BTModMerger
 
