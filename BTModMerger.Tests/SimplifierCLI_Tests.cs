@@ -124,7 +124,7 @@ public class SimplifierCLI_Tests
 
         var input = MakeValidInput(fileio, "inout.xml", canReopenAsWrite: true);
 
-        tool.Apply("inout.xml", null, new(), new(cxml, false, false), true);
+        tool.Apply("inout.xml", null, new(), new(cxml, false, false), inPlace: true);
 
         Assert.False(fileio.CinOpened);
         Assert.False(fileio.CoutOpened);

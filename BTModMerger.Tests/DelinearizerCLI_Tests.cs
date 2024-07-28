@@ -58,4 +58,20 @@ public class DelinearizerCLI_Tests
         Assert.False(fileio.CinOpened);
         Assert.False(fileio.CoutOpened);
     }
+
+    [Fact]
+    public void InPlace()
+    {
+        using var fileio = new FileIOMocker();
+        var tool = Make(fileio);
+
+        var input = MakeValidInput(fileio, "in.xml");
+
+        tool.Apply("in.xml", null, inPlace: true);
+
+        ValidateInOut(fileio, "in.xml", input);
+
+        Assert.False(fileio.CinOpened);
+        Assert.False(fileio.CoutOpened);
+    }
 }
