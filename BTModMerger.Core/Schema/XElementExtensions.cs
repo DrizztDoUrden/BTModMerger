@@ -13,6 +13,9 @@ public static class XElementExtensions
 
     public static string? GetBTIdentifier(this XElement element, BTMetadata metadata) => metadata.GetId(element);
 
+    public static bool IsNameEqualCIS(this XElement element, XName name)
+        => element.Name.Namespace == name.Namespace && CompareCIS(element.Name.LocalName, name.LocalName);
+
     public static string? GetBTAttributeCIS(this XElement element, XName name)
         => element.Attributes().FirstOrDefault(attr => attr.Name.Namespace == name.Namespace && CompareCIS(attr.Name.LocalName, name.LocalName))?.Value;
 

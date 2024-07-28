@@ -8,7 +8,7 @@ using static BTMMSchema;
 
 public class Fuser_Tests
 {
-    private Fuser Make() => new(
+    public static Fuser Make() => new(
         BTMetadata.Test
     );
 

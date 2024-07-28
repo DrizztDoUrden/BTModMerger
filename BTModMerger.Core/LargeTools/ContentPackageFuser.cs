@@ -2,6 +2,7 @@
 
 using BTModMerger.Core.Interfaces;
 using BTModMerger.Core.Schema;
+
 using static BTModMerger.Core.Schema.BTMMSchema;
 
 namespace BTModMerger.Core.LargeTools;
@@ -12,7 +13,13 @@ public class ContentPackageFuser(
 {
     public IEnumerable<Task<(string path, XDocument data)>> Apply(XDocument contentPackage, Func<string, XDocument> fileGetters)
     {
-        foreach (var items in contentPackage.Elements().GroupBy(e => e.Name))
+        if (contentPackage.Root is null)
+            throw new InvalidDataException("Content package is empty");
+
+        if (!contentPackage.Root.IsNameEqualCIS("ContentPackage"))
+            throw new InvalidDataException("Content package should have ContentPackage as root element");
+
+        foreach (var items in contentPackage.Root.Elements().GroupBy(e => e.Name))
         {
             var task = new Task<(string, XDocument)>(() =>
             {
