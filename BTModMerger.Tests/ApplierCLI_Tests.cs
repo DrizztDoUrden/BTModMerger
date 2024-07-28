@@ -6,6 +6,7 @@ using BTModMerger.Tools;
 namespace BTModMerger.Tests;
 
 using static BTModMerger.Core.BTMMSchema;
+using static CLITestHelpers;
 
 public class ApplierCLI_Tests
 {
@@ -21,39 +22,6 @@ public class ApplierCLI_Tests
         MakeMocker(),
         LinearizerCLI_Tests.MakeMocker()
     );
-
-    private static Stream MakeValidInput(FileIOMocker fileio, string? path = null, XElement? root = null)
-    {
-        var stream = new MemoryStream();
-        new XDocument(root ?? Diff()).Save(stream);
-        stream.Position = 0;
-
-        if (path is null)
-        {
-            fileio.Cin = stream;
-        }
-        else
-        {
-            fileio.ExistingFiles.Add(path);
-            fileio.FilesToRead.Add(path, stream);
-        }
-
-        return stream;
-    }
-
-    private static void ValidateInput(FileIOMocker fileio, string path, Stream stream)
-    {
-        Assert.False(stream.CanRead);
-        Assert.Contains(path, fileio.ReadFiles);
-        Assert.DoesNotContain(path, fileio.FilesToWrite);
-    }
-
-    private static void ValidateOutput(FileIOMocker fileio, string path, Stream stream)
-    {
-        Assert.False(stream.CanRead);
-        Assert.DoesNotContain(path, fileio.ReadFiles);
-        Assert.Contains(path, fileio.FilesToWrite);
-    }
 
     [Fact]
     public void MissingInput()
@@ -72,8 +40,7 @@ public class ApplierCLI_Tests
 
         var @base = MakeValidInput(fileio);
         var mod = MakeValidInput(fileio, "mod.xml", root: new XElement("e"));
-        var output = new MemoryStream();
-        fileio.Cout = output;
+        var output = MakeValidOutput(fileio);
 
         Assert.Throws<InvalidDataException>(() => tool.Apply(null, "mod.xml", null, false));
     }
@@ -86,8 +53,7 @@ public class ApplierCLI_Tests
 
         var @base = MakeValidInput(fileio, "base.xml", root: Diff(new XElement("e")));
         var mod = MakeValidInput(fileio, "mod.xml", root: new XElement("e"));
-        var output = new MemoryStream();
-        fileio.FilesToWrite.Add("out.xml", output);
+        var output = MakeValidOutput(fileio, "out.xml");
 
         Assert.Throws<InvalidDataException>(() => tool.Apply("base.xml", "mod.xml", "out.xml", false));
     }
@@ -102,8 +68,7 @@ public class ApplierCLI_Tests
 
         var @base = MakeValidInput(fileio, "base.xml", root: Diff(new XElement("e")));
         var mod = MakeValidInput(fileio, "mod.xml");
-        var output = new MemoryStream();
-        fileio.FilesToWrite.Add("out.xml", output);
+        var output = MakeValidOutput(fileio, "out.xml");
 
         tool.Apply("base.xml", "mod.xml", "out.xml", @override);
 
@@ -120,8 +85,7 @@ public class ApplierCLI_Tests
 
         var @base = MakeValidInput(fileio, "base.xml", root: FusedBase(new XElement("e")));
         var mod = MakeValidInput(fileio, "mod.xml");
-        var output = new MemoryStream();
-        fileio.FilesToWrite.Add("out.xml", output);
+        var output = MakeValidOutput(fileio, "out.xml");
 
         tool.Apply("base.xml", "mod.xml", "out.xml", false);
 

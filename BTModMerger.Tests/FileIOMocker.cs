@@ -8,10 +8,10 @@ internal class FileIOMocker : IFileIO, IDisposable
     {
     }
 
-    public MemoryStream? Cin { get; set; }
-    public MemoryStream? Cout { get; set; }
-    public Dictionary<string, MemoryStream> FilesToRead { get; } = new();
-    public Dictionary<string, MemoryStream> FilesToWrite { get; } = new();
+    public WrappedMemoryStream? Cin { get; set; }
+    public WrappedMemoryStream? Cout { get; set; }
+    public Dictionary<string, WrappedMemoryStream> FilesToRead { get; } = new();
+    public Dictionary<string, WrappedMemoryStream> FilesToWrite { get; } = new();
     public HashSet<string> ReadFiles { get; } = new();
     public HashSet<string> WriteFiles { get; } = new();
     public HashSet<string> ExistingFiles { get; } = new();
@@ -49,12 +49,29 @@ internal class FileIOMocker : IFileIO, IDisposable
     {
         if (WriteFiles.Contains(path))
             throw new Exception();
-        if (!FilesToWrite.ContainsKey(path))
-            throw new Exception();
+
+        Stream ret;
+
+        if (FilesToRead.TryGetValue(path, out var stream))
+        {
+            if (FilesToWrite.ContainsKey(path))
+                throw new Exception();
+
+            stream.Reopen();
+            ret = stream;
+            FilesToRead.Remove(path);
+        }
+        else
+        {
+            if (!FilesToWrite.ContainsKey(path))
+                throw new Exception();
+            ret = FilesToWrite[path];
+        }
 
         ExistingFiles.Add(path);
         WriteFiles.Add(path);
-        return FilesToWrite[path];
+
+        return ret;
     }
 
     void IFileIO.DeleteFile(string path)

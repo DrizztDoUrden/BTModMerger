@@ -5,6 +5,7 @@ using System.Xml.Linq;
 namespace BTModMerger.Tests;
 
 using static BTModMerger.Core.BTMMSchema;
+using static CLITestHelpers;
 
 public class DelinearizerCLI_Tests
 {
@@ -35,12 +36,7 @@ public class DelinearizerCLI_Tests
         using var fileio = new FileIOMocker();
         var tool = Make(fileio);
 
-        var input = new MemoryStream();
-
-        new XDocument(new XElement("e")).Save(input);
-        input.Position = 0;
-
-        fileio.Cin = input;
+        MakeValidInput(fileio, root: new XElement("e"));
 
         Assert.Throws<InvalidDataException>(() => tool.Apply(null, null));
     }
@@ -51,30 +47,14 @@ public class DelinearizerCLI_Tests
         using var fileio = new FileIOMocker();
         var tool = Make(fileio);
 
-        var input = new MemoryStream();
-        var outBuffer = Enumerable.Repeat((byte)0, 1024).ToArray();
-
-        var output = new MemoryStream(outBuffer);
-
-        var source = new XDocument(Diff());
-
-        source.Save(input);
-        input.Position = 0;
-
-        fileio.ExistingFiles.Add("in.xml");
-        fileio.FilesToRead.Add("in.xml", input);
-        fileio.FilesToWrite.Add("out.xml", output);
+        var input = MakeValidInput(fileio, "in.xml");
+        var output = MakeValidOutput(fileio, "out.xml");
 
         tool.Apply("in.xml", "out.xml");
 
-        Assert.False(input.CanRead);
-        Assert.False(output.CanRead);
+        ValidateInput(fileio, "in.xml", input);
+        ValidateOutput(fileio, "out.xml", output);
 
-        var end = Array.IndexOf(outBuffer, (byte)0);
-        using var resultStream = new MemoryStream(outBuffer, 0, end);
-        var result = XDocument.Load(resultStream);
-
-        Assert.Equal(source, result, XNode.DeepEquals);
         Assert.False(fileio.CinOpened);
         Assert.False(fileio.CoutOpened);
     }

@@ -7,6 +7,7 @@ using BTModMerger.Tools;
 namespace BTModMerger.Tests;
 
 using static BTModMerger.Core.BTMMSchema;
+using static CLITestHelpers;
 
 public class FuserCLI_Tests
 {
@@ -25,39 +26,6 @@ public class FuserCLI_Tests
         SimplifierCLI_Tests.MakeMocker()
     );
 
-    private static Stream MakeValidInput(FileIOMocker fileio, string? path = null, XElement? root = null)
-    {
-        var stream = new MemoryStream();
-        new XDocument(root ?? Diff()).Save(stream);
-        stream.Position = 0;
-
-        if (path is null)
-        {
-            fileio.Cin = stream;
-        }
-        else
-        {
-            fileio.ExistingFiles.Add(path);
-            fileio.FilesToRead.Add(path, stream);
-        }
-
-        return stream;
-    }
-
-    private static void ValidateInput(FileIOMocker fileio, string path, Stream stream)
-    {
-        Assert.False(stream.CanRead);
-        Assert.Contains(path, fileio.ReadFiles);
-        Assert.DoesNotContain(path, fileio.FilesToWrite);
-    }
-
-    private static void ValidateOutput(FileIOMocker fileio, string path, Stream stream)
-    {
-        Assert.False(stream.CanRead);
-        Assert.DoesNotContain(path, fileio.ReadFiles);
-        Assert.Contains(path, fileio.FilesToWrite);
-    }
-
     [Fact]
     public void MissingInput()
     {
@@ -74,13 +42,7 @@ public class FuserCLI_Tests
         using var fileio = new FileIOMocker();
         var tool = Make(fileio);
 
-        var input = new MemoryStream();
-
-        new XDocument(new XElement("e")).Save(input);
-        input.Position = 0;
-
-        fileio.ExistingFiles.Add("file.xml");
-        fileio.FilesToRead.Add("file.xml", input);
+        MakeValidInput(fileio, "file.xml");
 
         Assert.Throws<InvalidDataException>(() => tool.Apply(["file.xml"], false, false, null, false, true, new(), null));
     }
@@ -90,14 +52,8 @@ public class FuserCLI_Tests
     {
         using var fileio = new FileIOMocker();
         var tool = Make(fileio);
-
-        var input = new MemoryStream();
-
-        new XDocument(new XElement("e")).Save(input);
-        input.Position = 0;
-
-        fileio.ExistingFiles.Add("in0.xml");
-        fileio.FilesToRead.Add("in0.xml", input);
+        
+        MakeValidInput(fileio, "in0.xml", root: new XElement("e"));
         MakeValidInput(fileio, "in1.xml");
 
         Assert.Throws<InvalidDataException>(() => tool.Apply(["in0.xml", "in1.xml"], false, false, null, false, true, new(), null));
@@ -123,8 +79,7 @@ public class FuserCLI_Tests
 
         var in0 = MakeValidInput(fileio, "in0.xml");
         var in1 = MakeValidInput(fileio, "in1.xml");
-        var output = new MemoryStream();
-        fileio.FilesToWrite.Add("out.xml", output);
+        var output = MakeValidOutput(fileio, "out.xml");
 
         tool.Apply(["in0.xml", "in1.xml"], false, false, "out.xml", false, true, new(), null);
 
@@ -143,14 +98,13 @@ public class FuserCLI_Tests
 
         var in0 = MakeValidInput(fileio, "in0.xml");
         var in1 = MakeValidInput(fileio, "in1.xml");
-        var output = new MemoryStream();
-        fileio.FilesToWrite.Add("out.xml", output);
+        var output = MakeValidOutput(fileio, "out.xml");
 
         var parts =
 @"in0.xml
 in1.xml";
 
-        var cin = new MemoryStream(Encoding.UTF8.GetBytes(parts));
+        var cin = new WrappedMemoryStream(Encoding.UTF8.GetBytes(parts));
         fileio.Cin = cin;
 
         cin.Position = 0;
@@ -172,14 +126,11 @@ in1.xml";
 
         var in0 = MakeValidInput(fileio, "in0.xml");
         var in1 = MakeValidInput(fileio);
-        var output = new MemoryStream();
-        fileio.Cout = output;
+        var output = MakeValidOutput(fileio);
 
         tool.Apply(["in0.xml"], true, false, null, false, true, new(), null);
 
         ValidateInput(fileio, "in0.xml", in0);
-        Assert.True(in1.CanRead);
-        Assert.True(output.CanRead);
         Assert.True(fileio.CinOpened);
         Assert.True(fileio.CoutOpened);
     }
@@ -194,14 +145,12 @@ in1.xml";
         using var fileio = new FileIOMocker();
         var tool = Make(fileio);
 
-        var conflicts = new MemoryStream();
         var cxml = new FileInfo("c.xml");
-        fileio.FilesToWrite.Add(cxml.FullName, conflicts);
+        var conflicts = MakeValidOutput(fileio, cxml.FullName);
 
         var in0 = MakeValidInput(fileio, "in0.xml");
         var in1 = MakeValidInput(fileio, "in1.xml");
-        var output = new MemoryStream();
-        fileio.FilesToWrite.Add("out.xml", output);
+        var output = MakeValidOutput(fileio, "out.xml");
 
         tool.Apply(["in0.xml", "in1.xml"], false, false, "out.xml", false, false, new(), new(cxml, @override, deliniarizeConflicts));
 
@@ -212,5 +161,29 @@ in1.xml";
         Assert.False(fileio.CoutOpened);
 
         ValidateOutput(fileio, cxml.FullName, conflicts);
+    }
+
+    [Fact]
+    public void ConflictsOverride()
+    {
+        using var fileio = new FileIOMocker();
+        var tool = Make(fileio);
+
+        var cxml = new FileInfo("c.xml");
+        var conflicts = MakeValidInput(fileio, cxml.FullName, canReopenAsWrite: true);
+
+        var in0 = MakeValidInput(fileio, "in0.xml");
+        var in1 = MakeValidInput(fileio, "in1.xml");
+        var output = MakeValidOutput(fileio, "out.xml");
+
+        tool.Apply(["in0.xml", "in1.xml"], false, false, "out.xml", false, false, new(), new(cxml, false, false));
+
+        ValidateInput(fileio, "in0.xml", in0);
+        ValidateInput(fileio, "in1.xml", in1);
+        ValidateOutput(fileio, "out.xml", output);
+        Assert.False(fileio.CinOpened);
+        Assert.False(fileio.CoutOpened);
+
+        ValidateInOut(fileio, cxml.FullName, conflicts);
     }
 }
