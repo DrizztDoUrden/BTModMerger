@@ -1,5 +1,4 @@
-﻿using System.Xml;
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
 
 namespace BTModMerger.Core.Schema;
 
@@ -31,6 +30,8 @@ public static class BTMMSchema
         public static readonly XName RemoveElement = Namespace + nameof(RemoveElement);
 
         public static readonly XName FusedBase = Namespace + nameof(FusedBase);
+
+        public static readonly XName ContentPackage = Namespace + nameof(ContentPackage);
     }
 
     public static class Attributes
@@ -54,22 +55,12 @@ public static class BTMMSchema
         if (amount != 1) ret.SetAttributeSorting(Attributes.Amount, amount); return ret;
     }
 
-    public static IEnumerable<XElement> RemoveElements(IEnumerable<XElement> targets)
-        => targets
-            .Select(target => new XElement(target)
-            {
-                Name = RemoveNamespace + target.Name.LocalName
-            });
-
-    public static IEnumerable<XElement> RemoveElements(params XElement[] targets) => RemoveElements(targets.AsEnumerable());
-
     public static XElement Into(string path, params XObject[] children) => Into(path, children.AsEnumerable());
     public static XElement Into(string path, IEnumerable<XObject> children) => new(Elements.Into,
         new XAttribute(Attributes.Path, path),
         children
     );
 
-    public static IEnumerable<XElement> AddElements(string path, params XElement[] children) => AddElements(path, children.AsEnumerable());
     public static IEnumerable<XElement> AddElements(string path, IEnumerable<XElement> children)
         => children
             .Select(item =>
@@ -88,8 +79,7 @@ public static class BTMMSchema
         return ret;
     }
 
-    public static XAttribute SetAttribute(string name, string? value) => new(AddNamespace + name, value ?? "");
-    public static XAttribute RemoveAttribute(string name) => new(RemoveNamespace + name, "");
+    public static XAttribute SetAttribute(string name, string value) => new(AddNamespace + name, value);
 
     public static XAttribute AmountAttribute(int value) => new(Attributes.Amount, value);
     public static XAttribute PathAttribute(string value) => new(Attributes.Path, value);
@@ -107,6 +97,12 @@ public static class BTMMSchema
 
     public static XElement FusedBase(params object[] children)
         => new(Elements.FusedBase,
+            new XAttribute(XNamespace.Xmlns + NamespaceAlias, Namespace),
+            children
+        );
+
+    public static XElement ContentPackage(params object[] children)
+        => new(Elements.ContentPackage,
             new XAttribute(XNamespace.Xmlns + NamespaceAlias, Namespace),
             children
         );

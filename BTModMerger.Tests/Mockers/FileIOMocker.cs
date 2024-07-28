@@ -6,6 +6,7 @@ internal class FileIOMocker : IFileIO, IDisposable
 {
     public class Exception : System.Exception
     {
+        public Exception(string message) : base(message) { }
     }
 
     public WrappedMemoryStream? Cin { get; set; }
@@ -20,26 +21,26 @@ internal class FileIOMocker : IFileIO, IDisposable
 
     Stream IFileIO.OpenStandardInputStream()
     {
-        if (CinOpened) throw new Exception();
+        if (CinOpened) throw new Exception("Attempt to reopen cin");
         CinOpened = true;
-        return Cin ?? throw new Exception();
+        return Cin ?? throw new Exception("Attempt to open cin unexpectedly");
     }
 
     Stream IFileIO.OpenStandardOutputStream()
     {
-        if (CoutOpened) throw new Exception();
+        if (CoutOpened) throw new Exception("Attempt to reopen cout");
         CoutOpened = true;
-        return Cout ?? throw new Exception();
+        return Cout ?? throw new Exception("Attempt to open cout unexpectedly");
     }
 
     Stream IFileIO.OpenReadStream(string path)
     {
         if (ReadFiles.Contains(path))
-            throw new Exception();
+            throw new Exception($"Attempt to reopen <{path}>");
         if (!FilesToRead.ContainsKey(path))
-            throw new Exception();
+            throw new Exception($"Attempt to open unexpected <{path}>");
         if (!ExistingFiles.Contains(path))
-            throw new Exception();
+            throw new Exception($"Attempt to open non-existent file <{path}>");
 
         ReadFiles.Add(path);
         return FilesToRead[path];
@@ -48,14 +49,14 @@ internal class FileIOMocker : IFileIO, IDisposable
     Stream IFileIO.OpenWriteStream(string path)
     {
         if (WriteFiles.Contains(path))
-            throw new Exception();
+            throw new Exception($"Attempt to reopen <{path}>");
 
         Stream ret;
 
         if (FilesToRead.TryGetValue(path, out var stream))
         {
             if (FilesToWrite.ContainsKey(path))
-                throw new Exception();
+                throw new Exception($"Attempt to reopen <{path}> twice");
 
             stream.Reopen();
             ret = stream;
@@ -64,7 +65,7 @@ internal class FileIOMocker : IFileIO, IDisposable
         else
         {
             if (!FilesToWrite.ContainsKey(path))
-                throw new Exception();
+                throw new Exception($"Attempt to open unexpected <{path}>");
             ret = FilesToWrite[path];
         }
 
@@ -77,7 +78,7 @@ internal class FileIOMocker : IFileIO, IDisposable
     void IFileIO.DeleteFile(string path)
     {
         if (!ExistingFiles.Contains(path))
-            throw new Exception();
+            throw new Exception($"Attempt to delete non-existent file <{path}>");
 
         ExistingFiles.Remove(path);
     }
@@ -86,7 +87,7 @@ internal class FileIOMocker : IFileIO, IDisposable
     {
         if (ReadFiles.Contains(path) ||
             WriteFiles.Contains(path))
-            throw new Exception();
+            throw new Exception($"Attempt to check existence of file <{path}>, that has already been opened");
 
         return ExistingFiles.Contains(path);
     }

@@ -9,7 +9,11 @@ internal class CLITestHelpers
 {
     public static WrappedMemoryStream MakeEmptyInput(FileIOMocker fileio, string? path = null, bool canReopenAsWrite = false)
     {
-        var stream = new WrappedMemoryStream(true, false, reopenAsWrite: canReopenAsWrite);
+        var stream = new WrappedMemoryStream(true, false, reopenAsWrite: canReopenAsWrite)
+        {
+            FileIO = fileio,
+            Path = path,
+        };
 
         if (path is null)
         {
@@ -35,7 +39,11 @@ internal class CLITestHelpers
 
     public static WrappedMemoryStream MakeValidOutput(FileIOMocker fileio, string? path = null)
     {
-        var stream = new WrappedMemoryStream(false, true);
+        var stream = new WrappedMemoryStream(false, true)
+        {
+            FileIO = fileio,
+            Path = path,
+        };
 
         if (path is null)
         {
@@ -69,4 +77,8 @@ internal class CLITestHelpers
         Assert.Contains(path, fileio.ReadFiles);
         Assert.Contains(path, fileio.WriteFiles);
     }
+
+    public static void ValidateInput(WrappedMemoryStream stream) => ValidateInput(stream.FileIO!, stream.Path!, stream);
+    public static void ValidateOutput(WrappedMemoryStream stream) => ValidateOutput(stream.FileIO!, stream.Path!, stream);
+    public static void ValidateInOut(WrappedMemoryStream stream) => ValidateInOut(stream.FileIO!, stream.Path!, stream);
 }

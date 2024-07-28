@@ -2,6 +2,7 @@
 
 using BTModMerger.Core.Interfaces;
 using BTModMerger.Core.Schema;
+using BTModMerger.Core.Utils;
 
 using static BTModMerger.Core.Schema.BTMMSchema;
 
@@ -10,8 +11,9 @@ namespace BTModMerger.Core.LargeTools;
 public class ContentPackageFuser(
     IFuser fuser
 )
+    : IContentPackageFuser
 {
-    public IEnumerable<Task<(string path, XDocument data)>> Apply(XDocument contentPackage, Func<string, XDocument> fileGetters)
+    public IAsyncEnumerable<(string path, XName kind, XDocument data)> Apply(XDocument contentPackage, Func<string, XDocument> fileGetters, int threads)
     {
         if (contentPackage.Root is null)
             throw new InvalidDataException("Content package is empty");
@@ -19,9 +21,9 @@ public class ContentPackageFuser(
         if (!contentPackage.Root.IsNameEqualCIS("ContentPackage"))
             throw new InvalidDataException("Content package should have ContentPackage as root element");
 
-        foreach (var items in contentPackage.Root.Elements().GroupBy(e => e.Name))
-        {
-            var task = new Task<(string, XDocument)>(() =>
+        return contentPackage.Root.Elements()
+        .GroupBy(e => e.Name)
+            .AsParallelAsync(threads, (items, ct) => Task.Run(() =>
             {
                 var name = items.Key;
                 var ret = new XDocument(FusedBase());
@@ -43,11 +45,7 @@ public class ContentPackageFuser(
                     ret = new XDocument(newRoot);
                 }
 
-                return ($"{name.Fancify()}.xml", ret);
-            });
-
-            task.Start();
-            yield return task;
-        }
+                return ($"{name.Fancify()}.xml", name, ret);
+            }));
     }
 }

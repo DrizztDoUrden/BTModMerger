@@ -1,11 +1,10 @@
-﻿using System.Reflection;
-using System.Xml.Linq;
-
-using BTModMerger.Abstractions;
+﻿using BTModMerger.Abstractions;
 using BTModMerger.Core;
 using BTModMerger.Core.Interfaces;
+using BTModMerger.Core.LargeTools;
 using BTModMerger.Core.Schema;
 using BTModMerger.Core.Tools;
+using BTModMerger.LargeTools;
 using BTModMerger.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -28,22 +27,25 @@ public sealed class CLI
         public ServiceProvider Provider { get; } = new ServiceCollection()
             .AddLogging(lb => lb.AddConsole())
 
-            .AddSingleton<IFileIO, FileIO>()
-            .AddSingleton<BTMetadata, BTMetadata>(sp => BTMetadata.Load(pathToMetadata))
+            .AddTransient<IFileIO, FileIO>()
+            .AddTransient<BTMetadata, BTMetadata>(sp => BTMetadata.Load(pathToMetadata))
 
-            .AddSingleton<ILinearizer, Linearizer>()
-            .AddSingleton<IDelinearizer, Delinearizer>()
-            .AddSingleton<ISimplifier, Simplifier>()
-            .AddSingleton<IDiffer, Differ>()
-            .AddSingleton<IApplier, Applier>()
-            .AddSingleton<IFuser, Fuser>()
+            .AddTransient<ILinearizer, Linearizer>()
+            .AddTransient<IDelinearizer, Delinearizer>()
+            .AddTransient<ISimplifier, Simplifier>()
+            .AddTransient<IDiffer, Differ>()
+            .AddTransient<IApplier, Applier>()
+            .AddTransient<IFuser, Fuser>()
 
-            .AddSingleton<LinearizerCLI, LinearizerCLI>()
-            .AddSingleton<DelinearizerCLI, DelinearizerCLI>()
-            .AddSingleton<SimplifierCLI, SimplifierCLI>()
-            .AddSingleton<DifferCLI, DifferCLI>()
-            .AddSingleton<ApplierCLI, ApplierCLI>()
-            .AddSingleton<FuserCLI, FuserCLI>()
+            .AddTransient<LinearizerCLI, LinearizerCLI>()
+            .AddTransient<DelinearizerCLI, DelinearizerCLI>()
+            .AddTransient<SimplifierCLI, SimplifierCLI>()
+            .AddTransient<DifferCLI, DifferCLI>()
+            .AddTransient<ApplierCLI, ApplierCLI>()
+            .AddTransient<FuserCLI, FuserCLI>()
+
+            .AddTransient<IContentPackageFuser, ContentPackageFuser>()
+            .AddTransient<ContentPackageFuserCLI, ContentPackageFuserCLI>()
 
             .BuildServiceProvider();
 
@@ -243,13 +245,48 @@ public sealed class CLI
             inPlace);
     }
 
-    public static int Main(string[] args)
+    [ArgActionMethod]
+    [ArgDescription("Fuse a content package by element type into multiple files in target directory.")]
+    public async Task FusePackage(
+        [ArgExistingFile]
+        [ArgDescription(@"Path a content package file line Barotrauma\Content\ContentPackages\Vanilla.xml. When omitted it is expected to be in cin.")]
+        string? package,
+        [ArgRequired(PromptIfMissing = true)]
+        [ArgDescription("Path to a directory to store results into.")]
+        string target,
+        [ArgDescription("Amount of threads to use. Defaults to amount of logical processors.")]
+        int? threads,
+        [ArgDescription(@"Path to the package root. Usually it means the game directory. Can be inferred from the path in package argument. When both are missing would try default steam installation location.")]
+        string? packageRoot)
+    {
+        if (package is null && packageRoot is null)
+        {
+            var attempts = DriveInfo.GetDrives().Select(drive => $@"{drive.Name}Program Files (x86)\Steam\steamapps\common\Barotrauma");
+
+            foreach (var attempt in attempts)
+            {
+                if (Directory.Exists(attempt))
+                {
+                    packageRoot = attempt;
+                    break;
+                }
+            }
+
+            if (package is null)
+                throw new InvalidDataException("Barotrauma is installed in non-default location. Please provide package or packageRoot arguments.");
+        }
+
+        using var services = new Services(PathToMetadata);
+        await services.Provider.GetRequiredService<ContentPackageFuserCLI>().Apply(package, target, threads ?? Environment.ProcessorCount, packageRoot);
+    }
+
+    public static async Task<int> Main(string[] args)
     {
 #if !DEBUG
         try
         {
 #endif
-        Args.InvokeAction<CLI>(args);
+        await Args.InvokeActionAsync<CLI>(args);
         return 0;
 #if !DEBUG
     }

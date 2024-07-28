@@ -8,14 +8,17 @@ public class WrappedMemoryStream(
 )
     : Stream
 {
+    public class Exception : System.Exception { }
+
+    internal FileIOMocker? FileIO { get; init; }
+    internal string? Path { get; init; }
+
     public WrappedMemoryStream(byte[] buffer)
         : this(true, false)
     {
         stream?.Dispose();
         stream = new MemoryStream(buffer);
     }
-
-    public class Exception : System.Exception { }
 
     public override bool CanRead => canRead;
     public override bool CanWrite => canWrite;
