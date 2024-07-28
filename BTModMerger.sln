@@ -18,13 +18,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
+		LICENSE.txt = LICENSE.txt
 		ModdiffSyntax.md = ModdiffSyntax.md
 		README.md = README.md
+		version.json = version.json
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTModMerger", "BTModMerger\BTModMerger.csproj", "{4A97DA22-77F9-4581-9CE5-E2E1DB741D02}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTModMerger.Tests", "BTModMerger.Tests\BTModMerger.Tests.csproj", "{71C41462-569B-4F3B-94AF-343B08C56813}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTModMerger.Tests", "BTModMerger.Tests\BTModMerger.Tests.csproj", "{71C41462-569B-4F3B-94AF-343B08C56813}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
