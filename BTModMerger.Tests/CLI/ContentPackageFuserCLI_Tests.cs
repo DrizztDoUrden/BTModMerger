@@ -34,7 +34,7 @@ public class ContentPackageFuserCLI_Tests
     {
         Assert.Throws<InvalidDataException>(() => ContentPackageFuserCLI.FindPackageRoot(null));
         Assert.Throws<InvalidDataException>(() => ContentPackageFuserCLI.FindPackageRoot(@"c:\"));
-        Assert.Equal(@"C:\Barotrauma", ContentPackageFuserCLI.FindPackageRoot(@"C:\Barotrauma\Content\ContentPackages\Vanilla.xml"));
+        Assert.Equal("Barotrauma", ContentPackageFuserCLI.FindPackageRoot(Path.Combine("Barotrauma", "Content", "ContentPackages", "Vanilla.xml")));
     }
 
     [Fact]
