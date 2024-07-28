@@ -1,5 +1,6 @@
 ﻿using System.Xml.Linq;
 using BTModMerger.Core;
+using BTModMerger.Core.Schema;
 
 namespace BTModMerger.Tests.Utils;
 

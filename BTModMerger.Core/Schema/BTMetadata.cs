@@ -1,7 +1,7 @@
 ﻿using System.Xml.Linq;
 using System.Xml.Serialization;
 
-namespace BTModMerger.Core;
+namespace BTModMerger.Core.Schema;
 
 public class BTMetadata
 {

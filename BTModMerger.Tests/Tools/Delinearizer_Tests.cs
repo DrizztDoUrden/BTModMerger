@@ -1,5 +1,5 @@
 ﻿using System.Xml.Linq;
-using BTModMerger.Core;
+using BTModMerger.Core.Schema;
 using Microsoft.Extensions.Logging;
 
 namespace BTModMerger.Tests.Tools;

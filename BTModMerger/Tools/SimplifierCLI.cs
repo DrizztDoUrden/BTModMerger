@@ -6,7 +6,7 @@ using BTModMerger.Core.Interfaces;
 
 namespace BTModMerger.Tools;
 
-using static Core.BTMMSchema;
+using static BTModMerger.Core.Schema.BTMMSchema;
 
 public class SimplifierCLI(
     IFileIO fileio,

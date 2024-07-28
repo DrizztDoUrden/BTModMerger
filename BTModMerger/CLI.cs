@@ -4,6 +4,8 @@ using System.Xml.Linq;
 using BTModMerger.Abstractions;
 using BTModMerger.Core;
 using BTModMerger.Core.Interfaces;
+using BTModMerger.Core.Schema;
+using BTModMerger.Core.Tools;
 using BTModMerger.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

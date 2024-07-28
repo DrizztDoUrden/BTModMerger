@@ -5,7 +5,7 @@ using BTModMerger.Tools;
 
 namespace BTModMerger.Tests.CLI;
 
-using static BTModMerger.Core.BTMMSchema;
+using static BTModMerger.Core.Schema.BTMMSchema;
 using static CLITestHelpers;
 
 public class DifferCLI_Tests

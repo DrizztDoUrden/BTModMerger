@@ -36,7 +36,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Update="BTMetadata.xml">
+		<None Update="Schema\BTMetadata.xml">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>

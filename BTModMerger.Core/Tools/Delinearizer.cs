@@ -1,9 +1,10 @@
-﻿using static BTModMerger.Core.BTMMSchema;
+﻿using static BTModMerger.Core.Schema.BTMMSchema;
 using static BTModMerger.Core.ToolBase;
 using System.Xml.Linq;
 using BTModMerger.Core.Interfaces;
+using BTModMerger.Core.Schema;
 
-namespace BTModMerger.Core;
+namespace BTModMerger.Core.Tools;
 
 public class Delinearizer : IDelinearizer
 {

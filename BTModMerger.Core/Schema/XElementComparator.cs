@@ -1,6 +1,6 @@
 ﻿using System.Xml.Linq;
 
-namespace BTModMerger.Core;
+namespace BTModMerger.Core.Schema;
 
 // Taken mostly from https://stackoverflow.com/a/13048775/6078677
 public static class XElementComparator

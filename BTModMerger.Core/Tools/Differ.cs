@@ -1,13 +1,12 @@
 ﻿using System.Xml.Linq;
-
 using BTModMerger.Core.Interfaces;
-
+using BTModMerger.Core.Schema;
 using Microsoft.Extensions.Logging;
 
-using static BTModMerger.Core.BTMMSchema;
+using static BTModMerger.Core.Schema.BTMMSchema;
 using static BTModMerger.Core.ToolBase;
 
-namespace BTModMerger.Core;
+namespace BTModMerger.Core.Tools;
 
 public class Differ(
     ILogger<Differ> logger,

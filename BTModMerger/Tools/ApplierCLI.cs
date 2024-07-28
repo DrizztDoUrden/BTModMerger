@@ -1,7 +1,6 @@
 ﻿using System.Xml.Linq;
 using BTModMerger.Core.Interfaces;
-
-using static BTModMerger.Core.BTMMSchema;
+using static BTModMerger.Core.Schema.BTMMSchema;
 using static BTModMerger.Core.ToolBase;
 
 namespace BTModMerger.Tools;

@@ -1,11 +1,10 @@
 using System.Xml.Linq;
-
 using BTModMerger.Core.Interfaces;
-
-using static BTModMerger.Core.BTMMSchema;
+using BTModMerger.Core.Schema;
+using static BTModMerger.Core.Schema.BTMMSchema;
 using static BTModMerger.Core.ToolBase;
 
-namespace BTModMerger.Core;
+namespace BTModMerger.Core.Tools;
 
 public sealed class Fuser(
     BTMetadata metadata

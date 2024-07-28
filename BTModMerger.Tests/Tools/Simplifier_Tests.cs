@@ -1,6 +1,8 @@
 ﻿using System.Xml.Linq;
 using BTModMerger.Core;
 using BTModMerger.Core.Interfaces;
+using BTModMerger.Core.Schema;
+using BTModMerger.Core.Tools;
 using Microsoft.Extensions.Logging;
 
 namespace BTModMerger.Tests.Tools;

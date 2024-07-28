@@ -2,7 +2,7 @@
 
 namespace BTModMerger.Tools;
 
-using static Core.BTMMSchema;
+using static BTModMerger.Core.Schema.BTMMSchema;
 
 public class DelinearizerCLI(
     IFileIO fileio,

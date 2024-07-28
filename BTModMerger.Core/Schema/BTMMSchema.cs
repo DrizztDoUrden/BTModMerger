@@ -1,7 +1,7 @@
 ﻿using System.Xml;
 using System.Xml.Linq;
 
-namespace BTModMerger.Core;
+namespace BTModMerger.Core.Schema;
 
 public static class BTMMSchema
 {

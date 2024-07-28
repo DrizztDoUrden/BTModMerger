@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using BTModMerger.Core.Interfaces;
 
-using static BTModMerger.Core.BTMMSchema;
+using static BTModMerger.Core.Schema.BTMMSchema;
 
 namespace BTModMerger.Tools;
 
