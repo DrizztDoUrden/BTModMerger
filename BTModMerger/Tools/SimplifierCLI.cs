@@ -14,7 +14,7 @@ public class SimplifierCLI(
     IDelinearizer delinearizer
 )
 {
-    public void Apply(string? inputPath, string? outputPath, in ISimplifier.Options options, ConflictsFileInfo? conflicts)
+    public void Apply(string? inputPath, string? outputPath, in ISimplifier.Options options, ConflictsFileInfo? conflicts, bool inPlace = false)
     {
         var input = fileio.OpenInput(ref inputPath);
 
@@ -30,7 +30,7 @@ public class SimplifierCLI(
         }
 
         var to = simplifier.Apply(input, inputPath, options, conflictsDocument?.Root!);
-        fileio.SaveResult(outputPath, to);
+        fileio.SaveResult(inPlace ? inputPath : outputPath, to);
 
         if (conflicts is not null)
         {

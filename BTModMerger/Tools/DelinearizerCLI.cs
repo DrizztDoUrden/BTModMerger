@@ -9,7 +9,7 @@ public class DelinearizerCLI(
     IDelinearizer delinearizer
 )
 {
-    public void Apply(string? inputPath, string? outputPath)
+    public void Apply(string? inputPath, string? outputPath, bool inPlace = false)
     {
         var input = fileio.OpenInput(ref inputPath);
 
@@ -17,6 +17,6 @@ public class DelinearizerCLI(
             throw new InvalidDataException($"({inputPath}) should be a BTMM diff xml.");
 
         var to = delinearizer.Apply(input, inputPath);
-        fileio.SaveResult(outputPath, to);
+        fileio.SaveResult(inPlace ? inputPath : outputPath, to);
     }
 }

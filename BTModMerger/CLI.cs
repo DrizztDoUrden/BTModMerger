@@ -157,47 +157,60 @@ public sealed class CLI
     [ArgDescription("Indent an XML file. Useful to validate the result of diff->apply")]
     public void Indent(
         [ArgExistingFile]
+        [ArgRequired(If = "inPlace")]
         [ArgDescription("Path to a file to indent. Optional. If not provided, cin would be used.")]
         string? input,
         [ArgDescription("Path to a file to store result into. Optional. If not provided, cout would be used.")]
-        string? output)
+        string? output,
+        [ArgCantBeCombinedWith("output")]
+        [ArgDescription("Whether to process input file inplace.")]
+        bool inPlace)
     {
 
         using var services = new Services(PathToMetadata);
         var fileio = services.Provider.GetRequiredService<IFileIO>();
-        fileio.SaveResult(output, fileio.OpenInput(ref input));
+        fileio.SaveResult(inPlace ? input : output, fileio.OpenInput(ref input));
     }
 
     [ArgActionMethod]
     [ArgDescription("Linearize an XML diff file. Removes all btmm:Into elements and moves their content to the root with appropriate btmm:Path attributes")]
     public void Linearize(
         [ArgExistingFile]
+        [ArgRequired(If = "inPlace")]
         [ArgDescription("Path to a file to indent. Optional. If not provided, cin would be used.")]
         string? input,
         [ArgDescription("Path to a file to store result into. Optional. If not provided, cout would be used.")]
-        string? output)
+        string? output,
+        [ArgCantBeCombinedWith("output")]
+        [ArgDescription("Whether to process input file inplace.")]
+        bool inPlace)
     {
         using var services = new Services(PathToMetadata);
-        services.Provider.GetRequiredService<LinearizerCLI>().Apply(input, output);
+        services.Provider.GetRequiredService<LinearizerCLI>().Apply(input, output, inPlace);
     }
 
     [ArgActionMethod]
     [ArgDescription("Delinearize an XML diff file. Makes all btmm:Path attributes contain exactly single element by moving things to btmm:Into elements.")]
     public void Delinearize(
         [ArgExistingFile]
+        [ArgRequired(If = "inPlace")]
         [ArgDescription("Path to a file to indent. Optional. If not provided, cin would be used.")]
         string? input,
         [ArgDescription("Path to a file to store result into. Optional. If not provided, cout would be used.")]
-        string? output)
+        string? output,
+        [ArgCantBeCombinedWith("output")]
+        [ArgDescription("Whether to process input file inplace.")]
+        bool inPlace)
     {
         using var services = new Services(PathToMetadata);
-        services.Provider.GetRequiredService<DelinearizerCLI>().Apply(input, output);
+        services.Provider.GetRequiredService<DelinearizerCLI>().Apply(input, output, inPlace);
     }
 
     [ArgActionMethod]
     [ArgDescription("Simplify an XML diff file. Removes duplicates and empty elements.")]
     public void Simplify(
         [ArgExistingFile]
+        [ArgRequired(If = "inPlace")]
         [ArgDescription("Path to a file to indent. Optional. If not provided, cin would be used.")]
         string? input,
         [ArgDescription("Path to a file to store result into. Optional. If not provided, cout would be used.")]
@@ -214,14 +227,18 @@ public sealed class CLI
         [ArgDescription("Prevents from appending to whatever was in the conflicts file")]
         bool overrideConflicts,
         [ArgDescription("Whether to delinearize conflicts file.")]
-        bool delinearizeConflicts)
+        bool delinearizeConflicts,
+        [ArgCantBeCombinedWith("output")]
+        [ArgDescription("Whether to process input file inplace.")]
+        bool inPlace)
     {
         using var services = new Services(PathToMetadata);
         services.Provider.GetRequiredService<SimplifierCLI>().Apply(
             input,
             output,
             new(addNamespacePolicy, conflictHandlingPolicy),
-            conflicts is not null ? new(new(conflicts), overrideConflicts, delinearizeConflicts) : null);
+            conflicts is not null ? new(new(conflicts), overrideConflicts, delinearizeConflicts) : null,
+            inPlace);
     }
 
     public static int Main(string[] args)

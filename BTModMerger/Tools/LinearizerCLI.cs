@@ -10,7 +10,7 @@ public class LinearizerCLI(
     ILinearizer linearizer
 )
 {
-    public void Apply(string? inputPath, string? outputPath)
+    public void Apply(string? inputPath, string? outputPath, bool inPlace = false)
     {
         var input = fileio.OpenInput(ref inputPath);
 
@@ -18,6 +18,6 @@ public class LinearizerCLI(
             throw new InvalidDataException($"({inputPath}) should be a BTMM diff xml.");
 
         var to = linearizer.Apply(input, inputPath);
-        fileio.SaveResult(outputPath, to);
+        fileio.SaveResult(inPlace ? inputPath : outputPath, to);
     }
 }
