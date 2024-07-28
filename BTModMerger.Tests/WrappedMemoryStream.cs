@@ -36,8 +36,11 @@ public class WrappedMemoryStream(
 
         if (reopen)
         {
-            buffer = new byte[stream.Length];
-            stream.Read(buffer.AsSpan());
+            if (reopenAsRead)
+            {
+                buffer = new byte[stream.Length];
+                stream.Read(buffer.AsSpan());
+            }
         }
 
         stream.Close();
@@ -50,9 +53,11 @@ public class WrappedMemoryStream(
     {
         if (!reopenAsWrite && reopenAsRead) throw new Exception();
         if (reopened) throw new Exception();
-        if (buffer is null) throw new Exception();
 
-        stream = new MemoryStream(buffer!);
+        stream = reopenAsRead
+            ? new MemoryStream(buffer ?? throw new Exception())
+            : new MemoryStream();
+
         reopened = true;
         buffer = null;
         canWrite = reopenAsWrite;
