@@ -35,9 +35,7 @@ internal class FileIOMocker : IFileIO, IDisposable
 
     Stream IFileIO.OpenReadStream(string path)
     {
-        if (Path.PathSeparator == '\\')
-            path = path.Replace('/', Path.PathSeparator);
-        else if (Path.PathSeparator == '/')
+        if (Path.PathSeparator == '/')
             path = path.Replace('\\', Path.PathSeparator);
 
         if (ReadFiles.Contains(path))
@@ -53,9 +51,7 @@ internal class FileIOMocker : IFileIO, IDisposable
 
     Stream IFileIO.OpenWriteStream(string path)
     {
-        if (Path.PathSeparator == '\\')
-            path = path.Replace('/', Path.PathSeparator);
-        else if (Path.PathSeparator == '/')
+        if (Path.PathSeparator == '/')
             path = path.Replace('\\', Path.PathSeparator);
 
         if (WriteFiles.Contains(path))
@@ -87,9 +83,7 @@ internal class FileIOMocker : IFileIO, IDisposable
 
     void IFileIO.DeleteFile(string path)
     {
-        if (Path.PathSeparator == '\\')
-            path = path.Replace('/', Path.PathSeparator);
-        else if (Path.PathSeparator == '/')
+        if (Path.PathSeparator == '/')
             path = path.Replace('\\', Path.PathSeparator);
 
         if (!ExistingFiles.Contains(path))
@@ -100,9 +94,7 @@ internal class FileIOMocker : IFileIO, IDisposable
 
     bool IFileIO.FileExists(string path)
     {
-        if (Path.PathSeparator == '\\')
-            path = path.Replace('/', Path.PathSeparator);
-        else if (Path.PathSeparator == '/')
+        if (Path.PathSeparator == '/')
             path = path.Replace('\\', Path.PathSeparator);
 
         if (ReadFiles.Contains(path) ||
