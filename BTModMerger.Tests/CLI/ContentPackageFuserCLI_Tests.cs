@@ -47,8 +47,8 @@ public class ContentPackageFuserCLI_Tests
             new XElement("item")
         ));
 
-        var output = MakeValidOutput(fileio, @"target\BTMMContentPackage.xml");
-        var item = MakeValidInput(fileio, @"target\item.xml");
+        var output = MakeValidOutput(fileio, Path.Combine("target", "BTMMContentPackage.xml"));
+        var item = MakeValidInput(fileio, Path.Combine("target", "item.xml"));
 
         await tool.Apply(null, "target", 1, "package");
 
@@ -61,8 +61,8 @@ public class ContentPackageFuserCLI_Tests
         using var fileio = new FileIOMocker();
         var tool = Make(fileio);
 
-        var input = MakeValidInput(fileio, @"c:\Barotrauma\Vanilla.xml");
-        var output = MakeValidOutput(fileio, @"target\BTMMContentPackage.xml");
+        var input = MakeValidInput(fileio, Path.Combine("Barotrauma", "Vanilla.xml"));
+        var output = MakeValidOutput(fileio, Path.Combine("target", "BTMMContentPackage.xml"));
 
         await tool.Apply(input.Path, "target", 1, null);
 

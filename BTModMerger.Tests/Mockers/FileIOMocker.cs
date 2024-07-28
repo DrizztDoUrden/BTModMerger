@@ -35,9 +35,6 @@ internal class FileIOMocker : IFileIO, IDisposable
 
     Stream IFileIO.OpenReadStream(string path)
     {
-        if (Path.PathSeparator == '/')
-            path = path.Replace('\\', Path.PathSeparator);
-
         if (ReadFiles.Contains(path))
             throw new Exception($"Attempt to reopen <{path}>");
         if (!FilesToRead.ContainsKey(path))
@@ -51,9 +48,6 @@ internal class FileIOMocker : IFileIO, IDisposable
 
     Stream IFileIO.OpenWriteStream(string path)
     {
-        if (Path.PathSeparator == '/')
-            path = path.Replace('\\', Path.PathSeparator);
-
         if (WriteFiles.Contains(path))
             throw new Exception($"Attempt to reopen <{path}>");
 
@@ -83,9 +77,6 @@ internal class FileIOMocker : IFileIO, IDisposable
 
     void IFileIO.DeleteFile(string path)
     {
-        if (Path.PathSeparator == '/')
-            path = path.Replace('\\', Path.PathSeparator);
-
         if (!ExistingFiles.Contains(path))
             throw new Exception($"Attempt to delete non-existent file <{path}>");
 
@@ -94,9 +85,6 @@ internal class FileIOMocker : IFileIO, IDisposable
 
     bool IFileIO.FileExists(string path)
     {
-        if (Path.PathSeparator == '/')
-            path = path.Replace('\\', Path.PathSeparator);
-
         if (ReadFiles.Contains(path) ||
             WriteFiles.Contains(path))
             throw new Exception($"Attempt to check existence of file <{path}>, that has already been opened");
