@@ -1,4 +1,4 @@
-namespace BTModMerger.Tests;
+namespace BTModMerger.Tests.Mockers;
 
 public class WrappedMemoryStream(
     bool canRead,

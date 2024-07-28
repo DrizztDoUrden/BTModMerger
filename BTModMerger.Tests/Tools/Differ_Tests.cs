@@ -1,4 +1,4 @@
-﻿namespace BTModMerger.Tests;
+﻿namespace BTModMerger.Tests.Tools;
 
 using System.Xml.Linq;
 using BTModMerger.Core;

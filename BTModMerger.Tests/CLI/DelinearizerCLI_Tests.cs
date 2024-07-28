@@ -1,23 +1,23 @@
+﻿using BTModMerger.Core.Interfaces;
+using BTModMerger.Tests.Mockers;
+using BTModMerger.Tools;
 using System.Xml.Linq;
 
-using BTModMerger.Core.Interfaces;
-using BTModMerger.Tools;
-
-namespace BTModMerger.Tests;
+namespace BTModMerger.Tests.CLI;
 
 using static BTModMerger.Core.BTMMSchema;
 using static CLITestHelpers;
 
-public class LinearizerCLI_Tests
+public class DelinearizerCLI_Tests
 {
-    private class Mocker : ILinearizer
+    private class Mocker : IDelinearizer
     {
         public XDocument Apply(XDocument input, string inputPath) => input;
     }
 
-    public static ILinearizer MakeMocker() => new Mocker();
+    public static IDelinearizer MakeMocker() => new Mocker();
 
-    private static LinearizerCLI Make(IFileIO fileio) => new(
+    private static DelinearizerCLI Make(IFileIO fileio) => new(
         fileio,
         MakeMocker()
     );

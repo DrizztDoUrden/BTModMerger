@@ -1,10 +1,10 @@
 using System.Text;
 using System.Xml.Linq;
-
 using BTModMerger.Core.Interfaces;
+using BTModMerger.Tests.Mockers;
 using BTModMerger.Tools;
 
-namespace BTModMerger.Tests;
+namespace BTModMerger.Tests.CLI;
 
 using static BTModMerger.Core.BTMMSchema;
 using static CLITestHelpers;
@@ -52,7 +52,7 @@ public class FuserCLI_Tests
     {
         using var fileio = new FileIOMocker();
         var tool = Make(fileio);
-        
+
         MakeValidInput(fileio, "in0.xml", root: new XElement("e"));
         MakeValidInput(fileio, "in1.xml");
 
@@ -137,9 +137,9 @@ in1.xml";
 
     [Theory]
     [InlineData([false, false])]
-    [InlineData([true,  false])]
+    [InlineData([true, false])]
     [InlineData([false, true])]
-    [InlineData([true,  true])]
+    [InlineData([true, true])]
     public void Conflicts(bool @override, bool deliniarizeConflicts)
     {
         using var fileio = new FileIOMocker();

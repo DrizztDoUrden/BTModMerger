@@ -1,6 +1,7 @@
 ﻿using System.Xml.Linq;
+using BTModMerger.Tests.Mockers;
 
-namespace BTModMerger.Tests;
+namespace BTModMerger.Tests.CLI;
 
 using static BTModMerger.Core.BTMMSchema;
 

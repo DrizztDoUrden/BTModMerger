@@ -1,10 +1,8 @@
 ﻿using System.Xml.Linq;
-
 using BTModMerger.Core;
-
 using Microsoft.Extensions.Logging;
 
-namespace BTModMerger.Tests;
+namespace BTModMerger.Tests.Tools;
 
 using static BTMMSchema;
 

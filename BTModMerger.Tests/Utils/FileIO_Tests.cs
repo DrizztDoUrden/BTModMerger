@@ -1,6 +1,6 @@
 ﻿using BTModMerger.Abstractions;
 
-namespace BTModMerger.Tests;
+namespace BTModMerger.Tests.Utils;
 
 public class FileIO_Tests
 {

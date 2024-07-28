@@ -1,9 +1,9 @@
 using System.Xml.Linq;
-
 using BTModMerger.Core.Interfaces;
+using BTModMerger.Tests.Mockers;
 using BTModMerger.Tools;
 
-namespace BTModMerger.Tests;
+namespace BTModMerger.Tests.CLI;
 
 using static BTModMerger.Core.BTMMSchema;
 using static CLITestHelpers;
@@ -92,9 +92,9 @@ public class SimplifierCLI_Tests
 
     [Theory]
     [InlineData([false, false])]
-    [InlineData([true,  false])]
+    [InlineData([true, false])]
     [InlineData([false, true])]
-    [InlineData([true,  true])]
+    [InlineData([true, true])]
     public void Conflicts(bool @override, bool deliniarizeConflicts)
     {
         using var fileio = new FileIOMocker();

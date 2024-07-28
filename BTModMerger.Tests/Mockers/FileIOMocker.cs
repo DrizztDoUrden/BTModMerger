@@ -1,6 +1,6 @@
 ﻿using BTModMerger.Core.Interfaces;
 
-namespace BTModMerger.Tests;
+namespace BTModMerger.Tests.Mockers;
 
 internal class FileIOMocker : IFileIO, IDisposable
 {

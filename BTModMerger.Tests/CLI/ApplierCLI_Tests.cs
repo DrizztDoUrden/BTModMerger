@@ -1,9 +1,9 @@
 using System.Xml.Linq;
-
 using BTModMerger.Core.Interfaces;
+using BTModMerger.Tests.Mockers;
 using BTModMerger.Tools;
 
-namespace BTModMerger.Tests;
+namespace BTModMerger.Tests.CLI;
 
 using static BTModMerger.Core.BTMMSchema;
 using static CLITestHelpers;
