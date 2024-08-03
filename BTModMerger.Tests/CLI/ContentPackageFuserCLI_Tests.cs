@@ -1,11 +1,12 @@
 ﻿using System.Xml.Linq;
 
-using BTModMerger.Core;
 using BTModMerger.Core.Interfaces;
 using BTModMerger.LargeTools;
 using BTModMerger.Tests.Mockers;
 
 using static BTModMerger.Tests.CLI.CLITestHelpers;
+
+using static BTModMerger.Core.Schema.BTMMSchema;
 
 namespace BTModMerger.Tests.CLI;
 
@@ -13,12 +14,12 @@ public class ContentPackageFuserCLI_Tests
 {
     private class ContentPackageFuserMocker : IContentPackageFuser
     {
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        public async IAsyncEnumerable<(string path, XElement record, XDocument data)> Apply(XDocument contentPackage, Func<string, XDocument> fileGetters, int threads)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        public (Task<XDocument> manifest, IEnumerable<(string path, Task<XDocument> data)> files) Apply(XDocument contentPackage, Func<string, Task<XDocument>> fileGetters)
         {
-            foreach (var child in contentPackage.Root!.Elements())
-                yield return ($"{child.Name.Fancify()}.xml", child, new XDocument(new XElement("e")));
+            return (
+                Task.FromResult<XDocument>(new(ContentPackage())),
+                Array.Empty<(string, Task<XDocument>)>()
+            );
         }
     }
 
@@ -43,15 +44,16 @@ public class ContentPackageFuserCLI_Tests
         using var fileio = new FileIOMocker();
         var tool = Make(fileio);
 
-        MakeValidInput(fileio, root: new XElement("ContentPackage",
+        var input = MakeValidInput(fileio, root: new XElement("ContentPackage",
             new XElement("item")
         ));
 
         var output = MakeValidOutput(fileio, Path.Combine("target", "BTMMContentPackage.xml"));
         var item = MakeValidInput(fileio, Path.Combine("target", "item.xml"));
 
-        await tool.Apply(null, "target", 1, "package");
+        await tool.Apply(null, "target", "package");
 
+        ValidateInput(input);
         ValidateOutput(output);
     }
 
@@ -64,7 +66,7 @@ public class ContentPackageFuserCLI_Tests
         var input = MakeValidInput(fileio, Path.Combine("Barotrauma", "Vanilla.xml"));
         var output = MakeValidOutput(fileio, Path.Combine("target", "BTMMContentPackage.xml"));
 
-        await tool.Apply(input.Path, "target", 1, null);
+        await tool.Apply(input.Path, "target", null);
 
         ValidateInput(input);
         ValidateOutput(output);

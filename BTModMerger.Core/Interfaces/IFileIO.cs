@@ -10,8 +10,11 @@ public interface IFileIO
     Stream OpenStandardOutputStream();
     Stream OpenReadStream(string path);
     Stream OpenWriteStream(string path);
-    bool FileExists(string outputPath);
-    void DeleteFile(string outputPath);
+    bool FileExists(string path);
+    void DeleteFile(string path);
+    bool IsDirectory(string path);
+    DateTime GetLastWriteTimeUtc(string path);
+    IEnumerable<string> GetFiles(string path, string pattern = "*", SearchOption options = SearchOption.TopDirectoryOnly);
 
     public sealed XmlReader OpenStandardInput() => XmlReader.Create(OpenStandardInputStream(), new()
     {
@@ -59,9 +62,21 @@ public interface IFileIO
         return XDocument.Load(baseFile, LoadOptions.None);
     }
 
-    public sealed void SaveResult(string? outputPath, XDocument? result)
+    public sealed async Task<XDocument> OpenInputAsync(string inputPath, CancellationToken? ct = null)
     {
-        if (result == null || !result.Elements().Any())
+        using var baseFile = OpenRead(inputPath);
+        return await XDocument.LoadAsync(baseFile, LoadOptions.None, ct ?? CancellationToken.None);
+    }
+
+    public sealed async Task<XDocument> OpenInputAsync(CancellationToken? ct = null)
+    {
+        using var baseFile = OpenStandardInput();
+        return await XDocument.LoadAsync(baseFile, LoadOptions.None, ct ?? CancellationToken.None);
+    }
+
+    public sealed void SaveResult(string? outputPath, XDocument? result, bool force = false)
+    {
+        if (result is null || !force && !result.Elements().Any())
             return;
 
         using var writer = string.IsNullOrWhiteSpace(outputPath)
@@ -69,5 +84,43 @@ public interface IFileIO
             : OpenWrite(outputPath);
 
         result.Save(writer);
+    }
+
+    public sealed async Task SaveResultAsync(string? outputPath, XDocument? result, CancellationToken? ct = null, bool force = false)
+    {
+        if (result is null || !force && !result.Elements().Any())
+            return;
+
+        using var writer = string.IsNullOrWhiteSpace(outputPath)
+            ? OpenStandardOutput()
+            : OpenWrite(outputPath);
+
+        await result.SaveAsync(writer, ct ?? CancellationToken.None);
+    }
+
+    public sealed async Task<(XDocument manifest, Func<string, Task<XDocument>> files)> OpenBTMMPackage(string path, string defaultPackageName, CancellationToken? ct = null)
+    {
+        string directory;
+
+        if (IsDirectory(path))
+        {
+            directory = path;
+            path = Path.Combine(path, defaultPackageName);
+        }
+        else
+        {
+            directory = Path.GetDirectoryName(path)!;
+        }
+
+        ct ??= CancellationToken.None;
+
+        return (await OpenInputAsync(path, ct), async filename =>
+        {
+            var cleanFilename = filename
+                .Replace(@"ModDir%/", "")
+                .Replace(@"ModDir%\", "");
+
+            return await OpenInputAsync(Path.Combine(directory, cleanFilename), ct);
+        });
     }
 }

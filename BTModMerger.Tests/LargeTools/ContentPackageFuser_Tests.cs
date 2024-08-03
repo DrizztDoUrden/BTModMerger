@@ -1,7 +1,7 @@
 ﻿using System.Xml.Linq;
 
 using BTModMerger.Core.LargeTools;
-using BTModMerger.Core.Utils;
+using BTModMerger.Core.Schema;
 using BTModMerger.Tests.Tools;
 
 using static BTModMerger.Core.Schema.BTMMSchema;
@@ -21,44 +21,47 @@ public class ContentPackageFuser_Tests
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
         {
-            await foreach (var _ in tool.Apply(new XDocument(), s => null!, 1)) { }
+            await tool.Apply(new XDocument(), s => Task.FromResult<XDocument>(null!)).manifest;
         });
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
         {
-            await foreach (var _ in tool.Apply(new XDocument(new XElement("e")), s => null!, 1)) { }
+            await tool.Apply(new XDocument(new XElement("e")), s => Task.FromResult<XDocument>(null!)).manifest;
         });
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
         {
-            await foreach (var _ in tool.Apply(new XDocument(new XElement(Namespace + "ContentPackage")), s => null!, 1)) { }
+            await tool.Apply(new XDocument(new XElement(Namespace + "ContentPackage")), s => Task.FromResult<XDocument>(null!)).manifest;
         });
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
         {
-            try
-            {
-                await foreach (var _ in tool.Apply(new XDocument(new XElement("ContentPackage", new XElement("items"))), s => new XDocument(), 1)) { }
-            }
-            catch (AggregateException ex)
-            {
-                Assert.Single(ex.InnerExceptions);
-                Assert.IsType<ParallelExecutionException<IGrouping<XName, XElement>>>(ex.InnerException);
-                throw ex.InnerException.InnerException!;
-            }
+            var (manifest, files) = tool.Apply(
+                new XDocument(new XElement("ContentPackage", new XElement("items"))),
+                s => Task.FromResult<XDocument>(new())
+            );
+
+            foreach (var (path, task) in files)
+                await task;
+
+            await manifest;
         });
     }
 
     [Fact]
-    public void Empty()
+    public async Task Empty()
     {
         var tool = Make();
+        var (manifest, files) = tool.Apply(new XDocument(new XElement("ContentPackage")), s => Task.FromResult<XDocument>(null!));
 
-        Assert.Empty(tool.Apply(new XDocument(new XElement("ContentPackage")), s => null!, 1).ToBlockingEnumerable());
+        var expected = new XDocument(ContentPackage());
+
+        Assert.Empty(files);
+        Assert.Equal(await manifest, expected, XNode.DeepEquals);
     }
 
     [Fact]
-    public void Minimal()
+    public async Task Minimal()
     {
         var tool = Make();
 
@@ -70,58 +73,104 @@ public class ContentPackageFuser_Tests
             )
         );
 
-        Assert.Collection(
-            tool.Apply(doc, s => new XDocument(new XElement(s, new XElement(s[..^1]))), 1).ToBlockingEnumerable(),
-            result =>
+        var (manifestTask, files) = tool.Apply(
+            doc,
+            s => Task.FromResult<XDocument>(new(new XElement(s, new XElement(s[..^1]))))
+        );
+
+        await Assert.CollectionAsync(
+            files,
+            async result =>
             {
-                var (path, _, data) = result;
+                var (path, data) = result;
                 Assert.Equal("items.xml", path);
-                Assert.Collection(data.Root!.Elements(),
+                Assert.Collection((await data).Root!.Elements(),
                     e => Assert.Equal("item", e.Name),
                     e => Assert.Equal("item", e.Name)
                 );
             },
-            result =>
+            async result =>
             {
-                var (path, _, data) = result;
+                var (path, data) = result;
                 Assert.Equal("jobs.xml", path);
-                Assert.Collection(data.Root!.Elements(),
+                Assert.Collection((await data).Root!.Elements(),
                     e => Assert.Equal("job", e.Name)
                 );
             });
+
+        var manifest = await manifestTask;
+
+        Assert.Equal(Elements.ContentPackage, manifest.Root!.Name);
+
+        Assert.Collection(
+            manifest.Root.Elements().OrderBy(e => e.Name.LocalName),
+            element => Assert.Equal(
+                XElementComparator.NormalizeElement(new XElement("items", PathAttribute("items.xml"), Part("items"), Part("items"))),
+                XElementComparator.NormalizeElement(element),
+                XNode.DeepEquals
+            ),
+            element => Assert.Equal(
+                XElementComparator.NormalizeElement(new XElement("jobs", PathAttribute("jobs.xml"), Part("jobs"))),
+                XElementComparator.NormalizeElement(element),
+                XNode.DeepEquals
+            )
+        );
     }
 
     [Fact]
-    public void MoreComplex()
+    public async Task MoreComplex()
     {
         var tool = Make();
 
         var doc = new XDocument(
             new XElement("ContentPackage",
-                new XElement("items", new XAttribute("file", "items")),
-                new XElement("items", new XAttribute("file", "items")),
-                new XElement("jobs", new XAttribute("file", "jobs"))
+                new XElement("items", new XAttribute("file", "items.xml")),
+                new XElement("items", new XAttribute("file", "items.xml")),
+                new XElement("jobs", new XAttribute("file", "jobs.xml"))
             )
         );
 
-        Assert.Collection(
-            tool.Apply(doc, s => new XDocument(new XElement("test", new XAttribute("a", 1), new XElement(s[..^1]))), 1).ToBlockingEnumerable(),
-            result =>
+        var (manifestTask, files) = tool.Apply(
+            doc,
+            s => Task.FromResult<XDocument>(new(new XElement("test", new XAttribute("a", 1), new XElement(s[..^1]))))
+        );
+
+        await Assert.CollectionAsync(
+            files,
+            async result =>
             {
-                var (path, _, data) = result;
+                var (path, data) = result;
                 Assert.Equal("items.xml", path);
-                Assert.Collection(data.Root!.Elements(),
+                Assert.Collection((await data).Root!.Elements(),
                     e => Assert.Equal("test", e.Name),
                     e => Assert.Equal("test", e.Name)
                 );
             },
-            result =>
+            async result =>
             {
-                var (path, _, data) = result;
+                var (path, data) = result;
                 Assert.Equal("jobs.xml", path);
-                Assert.Collection(data.Root!.Elements(),
+                Assert.Collection((await data).Root!.Elements(),
                     e => Assert.Equal("test", e.Name)
                 );
             });
+
+        var manifest = await manifestTask;
+
+        Assert.Equal(Elements.ContentPackage, manifest.Root!.Name);
+
+        Assert.Collection(
+            manifest.Root.Elements().OrderBy(e => e.Name.LocalName),
+            element => Assert.Equal(
+                XElementComparator.NormalizeElement(new XElement("items", PathAttribute("items.xml"), Part("items.xml"), Part("items.xml"))),
+                XElementComparator.NormalizeElement(element),
+                XNode.DeepEquals
+            ),
+            element => Assert.Equal(
+                XElementComparator.NormalizeElement(new XElement("jobs", PathAttribute("jobs.xml"), Part("jobs.xml"))),
+                XElementComparator.NormalizeElement(element),
+                XNode.DeepEquals
+            )
+        );
     }
 }

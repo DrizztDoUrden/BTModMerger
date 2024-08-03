@@ -33,6 +33,8 @@ public static class BTMMSchema
 
         public static readonly XName ContentPackage = Namespace + nameof(ContentPackage);
         public static readonly XName Part = Namespace + nameof(Part);
+        public static readonly XName ModDiff = Namespace + nameof(ModDiff);
+        public static readonly XName Copy = Namespace + nameof(Copy);
     }
 
     public static class Attributes
@@ -40,6 +42,15 @@ public static class BTMMSchema
         public static readonly XName Path = Namespace + nameof(Path);
         public static readonly XName Amount = Namespace + nameof(Amount);
         public static readonly XName File = Namespace + nameof(File);
+
+        public static readonly XName Timestamp = Namespace + nameof(Timestamp);
+        public static readonly XName Base = Namespace + nameof(Base);
+    }
+
+    public static class FileNames
+    {
+        public static readonly string ContentPackage = "BTMMContentPackage.xml";
+        public static readonly string ModDiff = "ModDiff.xml";
     }
 
     public static XElement RemoveElement(string path) => new(Elements.RemoveElement,
@@ -85,6 +96,8 @@ public static class BTMMSchema
     public static XAttribute AmountAttribute(int value) => new(Attributes.Amount, value);
     public static XAttribute PathAttribute(string value) => new(Attributes.Path, value);
     public static XAttribute FileAttribute(string value) => new(Attributes.File, value);
+    public static XAttribute TimestampAttribute(DateTime value) => new(Attributes.Timestamp, value.Ticks);
+    public static XAttribute BaseAttribute(string value) => new(Attributes.Base, value);
 
     public static XElement UpdateAttributes() => new(Elements.UpdateAttributes);
 
@@ -108,5 +121,19 @@ public static class BTMMSchema
             children
         );
 
-    public static XElement Part(string path) => new(Elements.Part, PathAttribute(path));
+    public static XElement ModDiff(params object[] children)
+        => new(Elements.ModDiff,
+            new XAttribute(XNamespace.Xmlns + NamespaceAlias, Namespace),
+            children
+        );
+
+    public static XElement Part(string path)
+        => new(Elements.Part,
+            PathAttribute(path)
+        );
+
+    public static XElement Copy(string path)
+        => new(Elements.Copy,
+            PathAttribute(path)
+        );
 }

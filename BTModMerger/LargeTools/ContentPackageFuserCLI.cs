@@ -1,6 +1,4 @@
-﻿using System.Xml.Linq;
-
-using BTModMerger.Core.Interfaces;
+﻿using BTModMerger.Core.Interfaces;
 
 using static BTModMerger.Core.Schema.BTMMSchema;
 
@@ -11,20 +9,20 @@ public class ContentPackageFuserCLI(
     IContentPackageFuser cpFuser
 )
 {
-    public async Task Apply(string? packagePath, string targetLocation, int threads, string? packageRoot)
+    public async Task Apply(string? packagePath, string targetLocation, string? packageRoot)
     {
         packageRoot ??= FindPackageRoot(packagePath);
         var package = fileio.OpenInput(ref packagePath);
-        var manifest = new XDocument(ContentPackage());
 
-        await foreach (var (path, record, data) in cpFuser.Apply(package, path => fileio.OpenInput(Path.Combine(packageRoot, path)), threads))
+        var (manifest, files) = cpFuser.Apply(package, path => fileio.OpenInputAsync(Path.Combine(packageRoot, path)));
+
+        foreach (var (path, data) in files)
         {
             var target = Path.Combine(targetLocation, path);
-            fileio.SaveResult(target, data);
-            manifest.Root!.Add(record);
+            fileio.SaveResult(target, await data);
         }
 
-        fileio.SaveResult(Path.Combine(targetLocation, "BTMMContentPackage.xml"), manifest);
+        fileio.SaveResult(Path.Combine(targetLocation, FileNames.ContentPackage), await manifest);
     }
 
     internal static string FindPackageRoot(string? packagePath)

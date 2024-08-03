@@ -1,12 +1,14 @@
 using System.Xml.Linq;
 
 using BTModMerger.Core.LargeTools;
-using BTModMerger.Core.Utils;
+using BTModMerger.Core.Schema;
 using BTModMerger.Tests.CLI;
 
 using static BTModMerger.Core.Schema.BTMMSchema;
 
 namespace BTModMerger.Tests.LargeTools;
+
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 
 public class ModDiffer_Tests
 {
@@ -21,87 +23,83 @@ public class ModDiffer_Tests
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
         {
-            await foreach (var _ in tool.Apply(
-                new XDocument(), s => null!,
-                new XDocument(), s => null!,
-                threads: 1,
+            await tool.Apply(
+                new XDocument(), async s => null!,
+                new XDocument(), async s => null!,
+                [],
                 alwaysOverride: false
-            )) { }
+            ).manifest;
         });
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
         {
-            await foreach (var _ in tool.Apply(
-                new XDocument(new XElement("e")), s => null!,
-                new XDocument(), s => null!,
-                threads: 1,
+            await tool.Apply(
+                new XDocument(new XElement("e")), async s => null!,
+                new XDocument(), async s => null!,
+                [],
                 alwaysOverride: false
-            )) { }
+            ).manifest;
         });
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
         {
-            await foreach (var _ in tool.Apply(
-                new XDocument(new XElement("ContentPackage")), s => null!,
-                new XDocument(), s => null!,
-                threads: 1,
+            await tool.Apply(
+                new XDocument(new XElement("ContentPackage")), async s => null!,
+                new XDocument(), async s => null!,
+                [],
                 alwaysOverride: false
-            )) { }
+            ).manifest;
         });
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
         {
-            await foreach (var _ in tool.Apply(
-                new XDocument(ContentPackage()), s => null!,
-                new XDocument(new XElement("e")), s => null!,
-                threads: 1,
+            await tool.Apply(
+                new XDocument(ContentPackage()), async s => null!,
+                new XDocument(new XElement("e")), async s => null!,
+                [],
                 alwaysOverride: false
-            )) { }
+            ).manifest;
         });
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
         {
-            try
-            {
-                await foreach (var _ in tool.Apply(
-                    new XDocument(ContentPackage(new XElement("items"))), s => new XDocument(),
-                    new XDocument(new XElement("ContentPackage", new XElement("items"))), s => null!,
-                    threads: 1,
-                    alwaysOverride: false
-                )) { }
-            }
-            catch (AggregateException ex)
-            {
-                Assert.Single(ex.InnerExceptions);
-                Assert.IsType<ParallelExecutionException<XElement>>(ex.InnerException);
-                throw ex.InnerException.InnerException!;
-            }
+            await tool.Apply(
+                new XDocument(ContentPackage(new XElement("items"))), async s => new XDocument(),
+                new XDocument(new XElement("ContentPackage", new XElement("items"))), async s => null!,
+                [],
+                alwaysOverride: false
+            ).manifest;
         });
     }
 
     [Fact]
-    public void Empty()
+    public async Task Empty()
     {
         var tool = Make();
 
-        Assert.Empty(tool.Apply(
-            new XDocument(ContentPackage()), s => null!,
-            new XDocument(new XElement("ContentPackage")), s => null!,
-            threads: 1,
+        var (manifest, files) = tool.Apply(
+            new XDocument(ContentPackage()), async s => null!,
+            new XDocument(new XElement("ContentPackage")), async s => null!,
+            [],
             alwaysOverride: false
-        ).ToBlockingEnumerable());
+        );
+
+        var expected = new XDocument(ModDiff());
+
+        Assert.Empty(files);
+        Assert.Equal(expected, await manifest, XNode.DeepEquals);
     }
 
     [Fact]
-    public void Minimal()
+    public async Task Minimal()
     {
         var tool = Make();
 
         var doc = new XDocument(
             ContentPackage(
-                new XElement("items", PathAttribute("items")),
-                new XElement("tests", PathAttribute("tests")),
-                new XElement("jobs", PathAttribute("jobs"))
+                new XElement("items", PathAttribute("items.xml")),
+                new XElement("tests", PathAttribute("tests.xml")),
+                new XElement("jobs", PathAttribute("jobs.xml"))
             )
         );
 
@@ -113,30 +111,62 @@ public class ModDiffer_Tests
             )
         );
 
-        Assert.Collection(
-            tool.Apply(
-                doc, s => new XDocument(new XElement(s)),
-                mod, s => new XDocument(new XElement(s, new XElement(s[..^1]))),
-                threads: 1,
-                alwaysOverride: false
-            ).ToBlockingEnumerable(),
-            result =>
+        var (manifestTask, files) = tool.Apply(
+            doc, async s => new XDocument(new XElement(s)),
+            mod, async s => new XDocument(new XElement(s, new XElement(s[..^1]))),
+            ["missing.xml"],
+            alwaysOverride: false
+        );
+
+        await Assert.CollectionAsync(
+            files,
+            async result =>
             {
-                var (path, _, data) = result;
-                Assert.Equal("items", path);
-                Assert.Empty(data.Root!.Elements());
+                var (path, data) = result;
+                Assert.Equal("items.xml", path);
+                Assert.Empty((await data).Root!.Elements());
             },
-            result =>
+            async result =>
             {
-                var (path, _, data) = result;
-                Assert.Equal("items", path);
-                Assert.Empty(data.Root!.Elements());
+                var (path, data) = result;
+                Assert.Equal("items.xml", path);
+                Assert.Empty((await data).Root!.Elements());
             },
-            result =>
+            async result =>
             {
-                var (path, _, data) = result;
-                Assert.Equal("jobs", path);
-                Assert.Empty(data.Root!.Elements());
+                var (path, data) = result;
+                Assert.Equal("jobs.xml", path);
+                Assert.Empty((await data).Root!.Elements());
             });
+
+        var manifest = await manifestTask;
+
+        Assert.Equal(Elements.ModDiff, manifest.Root!.Name);
+
+        Assert.Collection(
+            manifest.Root.Elements().OrderBy(e => e.Name.LocalName),
+            element => Assert.Equal(
+                XElementComparator.NormalizeElement(Copy("missing.xml")),
+                XElementComparator.NormalizeElement(element),
+                XNode.DeepEquals
+            ),
+            element => Assert.Equal(
+                XElementComparator.NormalizeElement(new XElement("items", PathAttribute("items.xml"), BaseAttribute("items.xml"))),
+                XElementComparator.NormalizeElement(element),
+                XNode.DeepEquals
+            ),
+            element => Assert.Equal(
+                XElementComparator.NormalizeElement(new XElement("items", PathAttribute("items.xml"), BaseAttribute("items.xml"))),
+                XElementComparator.NormalizeElement(element),
+                XNode.DeepEquals
+            ),
+            element => Assert.Equal(
+                XElementComparator.NormalizeElement(new XElement("jobs", PathAttribute("jobs.xml"), BaseAttribute("jobs.xml"))),
+                XElementComparator.NormalizeElement(element),
+                XNode.DeepEquals
+            )
+        );
     }
 }
+
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously

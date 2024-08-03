@@ -45,7 +45,10 @@ public sealed class CLI
             .AddTransient<FuserCLI, FuserCLI>()
 
             .AddTransient<IContentPackageFuser, ContentPackageFuser>()
+            .AddTransient<IModDiffer, ModDiffer>()
+
             .AddTransient<ContentPackageFuserCLI, ContentPackageFuserCLI>()
+            .AddTransient<ModDifferCLI, ModDifferCLI>()
 
             .BuildServiceProvider();
 
@@ -249,13 +252,11 @@ public sealed class CLI
     [ArgDescription("Fuse a content package by element type into multiple files in target directory.")]
     public async Task FusePackage(
         [ArgExistingFile]
-        [ArgDescription(@"Path a content package file line Barotrauma\Content\ContentPackages\Vanilla.xml. When omitted it is expected to be in cin.")]
+        [ArgDescription(@"Path a content package file like Barotrauma\Content\ContentPackages\Vanilla.xml. When omitted it is expected to be in cin.")]
         string? package,
         [ArgRequired(PromptIfMissing = true)]
         [ArgDescription("Path to a directory to store results into.")]
         string target,
-        [ArgDescription("Amount of threads to use. Defaults to amount of logical processors.")]
-        int? threads,
         [ArgDescription(@"Path to the package root. Usually it means the game directory. Can be inferred from the path in package argument. When both are missing would try default steam installation location.")]
         string? packageRoot)
     {
@@ -277,7 +278,27 @@ public sealed class CLI
         }
 
         using var services = new Services(PathToMetadata);
-        await services.Provider.GetRequiredService<ContentPackageFuserCLI>().Apply(package, target, threads ?? Environment.ProcessorCount, packageRoot);
+        await services.Provider.GetRequiredService<ContentPackageFuserCLI>().Apply(package, target, packageRoot);
+    }
+
+    [ArgActionMethod]
+    [ArgDescription("Diff a mod on a fused base package into target directory.")]
+    public async Task DiffMod(
+        [ArgRequired(PromptIfMissing = true)]
+        [ArgDescription(@"Path a fused content package root (what has been passed to target argument of FusePackage) or its manifest file.")]
+        string package,
+        [ArgRequired(PromptIfMissing = true)]
+        [ArgDescription(@"Path a mod root or its filelist.xml file.")]
+        string mod,
+        [ArgRequired(PromptIfMissing = true)]
+        [ArgDescription("Path to a directory to store results into.")]
+        string target,
+        [ArgDefaultValue(true)]
+        [ArgDescription("Whether to generate files with just overrides and additions (aka a mod) rather than all info.")]
+        bool @override)
+    {
+        using var services = new Services(PathToMetadata);
+        await services.Provider.GetRequiredService<ModDifferCLI>().Apply(package, mod, target, @override);
     }
 
     public static async Task<int> Main(string[] args)

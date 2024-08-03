@@ -11,11 +11,13 @@ internal class FileIOMocker : IFileIO, IDisposable
 
     public WrappedMemoryStream? Cin { get; set; }
     public WrappedMemoryStream? Cout { get; set; }
-    public Dictionary<string, WrappedMemoryStream> FilesToRead { get; } = new();
-    public Dictionary<string, WrappedMemoryStream> FilesToWrite { get; } = new();
-    public HashSet<string> ReadFiles { get; } = new();
-    public HashSet<string> WriteFiles { get; } = new();
-    public HashSet<string> ExistingFiles { get; } = new();
+    public Dictionary<string, WrappedMemoryStream> FilesToRead { get; } = [];
+    public Dictionary<string, WrappedMemoryStream> FilesToWrite { get; } = [];
+    public Dictionary<string, IEnumerable<string>> ChildFiles { get; } = [];
+    public HashSet<string> ReadFiles { get; } = [];
+    public HashSet<string> WriteFiles { get; } = [];
+    public HashSet<string> ExistingFiles { get; } = [];
+    public HashSet<string> Directories { get; } = [];
     public bool CinOpened { get; private set; } = false;
     public bool CoutOpened { get; private set; } = false;
 
@@ -91,6 +93,15 @@ internal class FileIOMocker : IFileIO, IDisposable
 
         return ExistingFiles.Contains(path);
     }
+
+    bool IFileIO.IsDirectory(string path) => Directories.Contains(path);
+
+    DateTime IFileIO.GetLastWriteTimeUtc(string path) => throw new NotImplementedException();
+
+    IEnumerable<string> IFileIO.GetFiles(string path, string pattern, SearchOption options)
+        => ChildFiles.TryGetValue(path, out var result)
+            ? result
+            : throw new Exception($"Attempt to request child file list from unexpected path <{path}>");
 
     public void Dispose()
     {

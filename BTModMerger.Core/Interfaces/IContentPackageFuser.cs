@@ -4,5 +4,5 @@ namespace BTModMerger.Core.Interfaces;
 
 public interface IContentPackageFuser
 {
-    IAsyncEnumerable<(string path, XElement record, XDocument data)> Apply(XDocument contentPackage, Func<string, XDocument> fileGetters, int threads);
+    (Task<XDocument> manifest, IEnumerable<(string path, Task<XDocument> data)> files) Apply(XDocument contentPackage, Func<string, Task<XDocument>> fileGetters);
 }

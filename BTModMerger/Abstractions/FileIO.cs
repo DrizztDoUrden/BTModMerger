@@ -22,4 +22,7 @@ public class FileIO : IFileIO
 
     public bool FileExists(string outputPath) => File.Exists(outputPath);
     public void DeleteFile(string outputPath) => File.Delete(outputPath);
+    public bool IsDirectory(string path) => File.GetAttributes(path).HasFlag(FileAttributes.Directory);
+    public DateTime GetLastWriteTimeUtc(string path) => File.GetLastWriteTimeUtc(path);
+    public IEnumerable<string> GetFiles(string path, string pattern, SearchOption options) => Directory.GetFiles(path, pattern, options);
 }
