@@ -66,8 +66,7 @@ public class ModDiffer(
 
                 var path = filename
                     .Replace(@"ModDir%/", "")
-                    .Replace(@"ModDir%\", "")
-                    + ".xml";
+                    .Replace(@"ModDir%\", "");
 
                 return (path, Task.Run(async () =>
                 {

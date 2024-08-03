@@ -123,19 +123,19 @@ public class ModDiffer_Tests
             async result =>
             {
                 var (path, data) = result;
-                Assert.Equal("items.xml", path);
+                Assert.Equal("items", path);
                 Assert.Empty((await data).Root!.Elements());
             },
             async result =>
             {
                 var (path, data) = result;
-                Assert.Equal("items.xml", path);
+                Assert.Equal("items", path);
                 Assert.Empty((await data).Root!.Elements());
             },
             async result =>
             {
                 var (path, data) = result;
-                Assert.Equal("jobs.xml", path);
+                Assert.Equal("jobs", path);
                 Assert.Empty((await data).Root!.Elements());
             });
 
@@ -151,17 +151,17 @@ public class ModDiffer_Tests
                 XNode.DeepEquals
             ),
             element => Assert.Equal(
-                XElementComparator.NormalizeElement(new XElement("items", PathAttribute("items.xml"), BaseAttribute("items.xml"))),
+                XElementComparator.NormalizeElement(new XElement("items", PathAttribute("items"), BaseAttribute("items.xml"))),
                 XElementComparator.NormalizeElement(element),
                 XNode.DeepEquals
             ),
             element => Assert.Equal(
-                XElementComparator.NormalizeElement(new XElement("items", PathAttribute("items.xml"), BaseAttribute("items.xml"))),
+                XElementComparator.NormalizeElement(new XElement("items", PathAttribute("items"), BaseAttribute("items.xml"))),
                 XElementComparator.NormalizeElement(element),
                 XNode.DeepEquals
             ),
             element => Assert.Equal(
-                XElementComparator.NormalizeElement(new XElement("jobs", PathAttribute("jobs.xml"), BaseAttribute("jobs.xml"))),
+                XElementComparator.NormalizeElement(new XElement("jobs", PathAttribute("jobs"), BaseAttribute("jobs.xml"))),
                 XElementComparator.NormalizeElement(element),
                 XNode.DeepEquals
             )
