@@ -14,11 +14,11 @@ public class ContentPackageFuserCLI_Tests
     private class ContentPackageFuserMocker : IContentPackageFuser
     {
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        public async IAsyncEnumerable<(string path, XName kind, XDocument data)> Apply(XDocument contentPackage, Func<string, XDocument> fileGetters, int threads)
+        public async IAsyncEnumerable<(string path, XElement record, XDocument data)> Apply(XDocument contentPackage, Func<string, XDocument> fileGetters, int threads)
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             foreach (var child in contentPackage.Root!.Elements())
-                yield return ($"{child.Name.Fancify()}.xml", child.Name, new XDocument(new XElement("e")));
+                yield return ($"{child.Name.Fancify()}.xml", child, new XDocument(new XElement("e")));
         }
     }
 

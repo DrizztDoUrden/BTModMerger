@@ -1,4 +1,5 @@
-﻿using System.Xml.Linq;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Xml.Linq;
 
 namespace BTModMerger.Core.Schema;
 
@@ -25,8 +26,8 @@ public static class XElementExtensions
     private static bool CompareCIS(string l, string r)
         => l.Equals(r, StringComparison.CurrentCultureIgnoreCase);
 
-    public static IEnumerable<XElement> ElementsCIS(this XContainer container, string name)
-        => container.Elements().Where(e => e.Name.Namespace == XNamespace.None && e.Name.LocalName == name);
+    public static IEnumerable<XElement> ElementsCIS(this XContainer container, XName name)
+        => container.Elements().Where(e => e.IsNameEqualCIS(name));
 
     public static bool IsTricky(this XElement element, BTMetadata metadata)
         => metadata.Tricky.Contains(element.Name.LocalName.ToLower());
@@ -67,4 +68,12 @@ public static class XElementExtensions
         foreach (var attr in btAtrrs)
             target.SetAttributeValue(attr.Name, attr.Value);
     }
+
+    public static bool RootIs(this XDocument document, XName name)
+        => document.Root is not null &&
+            document.Root.Name == name;
+
+    public static bool RootIsCIS(this XDocument document, XName name)
+        => document.Root is not null &&
+            document.Root.IsNameEqualCIS(name);
 }

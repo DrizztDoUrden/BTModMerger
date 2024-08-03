@@ -17,12 +17,11 @@ public class ContentPackageFuserCLI(
         var package = fileio.OpenInput(ref packagePath);
         var manifest = new XDocument(ContentPackage());
 
-        await foreach (var (path, kind, data) in cpFuser.Apply(package, path => fileio.OpenInput(Path.Combine(packageRoot, path)), threads))
+        await foreach (var (path, record, data) in cpFuser.Apply(package, path => fileio.OpenInput(Path.Combine(packageRoot, path)), threads))
         {
             var target = Path.Combine(targetLocation, path);
             fileio.SaveResult(target, data);
-
-            manifest.Root!.Add(new XElement(kind, new XAttribute(Attributes.Path, path)));
+            manifest.Root!.Add(record);
         }
 
         fileio.SaveResult(Path.Combine(targetLocation, "BTMMContentPackage.xml"), manifest);

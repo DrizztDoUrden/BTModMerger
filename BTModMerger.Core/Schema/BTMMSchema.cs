@@ -32,6 +32,7 @@ public static class BTMMSchema
         public static readonly XName FusedBase = Namespace + nameof(FusedBase);
 
         public static readonly XName ContentPackage = Namespace + nameof(ContentPackage);
+        public static readonly XName Part = Namespace + nameof(Part);
     }
 
     public static class Attributes
@@ -106,4 +107,6 @@ public static class BTMMSchema
             new XAttribute(XNamespace.Xmlns + NamespaceAlias, Namespace),
             children
         );
+
+    public static XElement Part(string path) => new(Elements.Part, PathAttribute(path));
 }
