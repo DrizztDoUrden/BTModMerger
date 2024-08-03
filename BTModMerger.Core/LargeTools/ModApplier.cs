@@ -35,10 +35,9 @@ public class ModApplier(
             })
             .ToArray();
 
-        var copies = manifest
+        var copies = modDiff.Root!
             .Elements(Elements.Copy)
-            .Select(e => e.Attribute(Attributes.Path)?.Value)
-            .Where(p => p is not null).Cast<string>()
+            .Select(e => e.Attribute(Attributes.Path)?.Value ?? throw new InvalidDataException($"btmm:Path attribute missing at {e.Name.Fancify()}."))
             .ToArray();
 
         return (
@@ -61,6 +60,7 @@ public class ModApplier(
             throw new InvalidDataException("Mod diff should have btmm:ModDiff as root element");
 
         return modDiff.Root!.Elements()
+            .Where(e => e.Name != Elements.Copy)
             .Select(modElement =>
             {
                 var name = modElement.Name;

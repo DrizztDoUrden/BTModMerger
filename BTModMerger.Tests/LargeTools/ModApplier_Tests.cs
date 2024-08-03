@@ -91,7 +91,8 @@ public class ModApplier_Tests
             ModDiff(
                 new XElement("items", PathAttribute("items")),
                 new XElement("items", PathAttribute("items")),
-                new XElement("jobs", PathAttribute("jobs"))
+                new XElement("jobs", PathAttribute("jobs")),
+                Copy("copy.xml")
             )
         );
 
@@ -142,6 +143,10 @@ public class ModApplier_Tests
                 XElementComparator.NormalizeElement(element),
                 XNode.DeepEquals
             )
+        );
+
+        Assert.Collection(copies,
+            s => Assert.Equal("copy.xml", s)
         );
     }
 }
