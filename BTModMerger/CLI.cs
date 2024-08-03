@@ -46,9 +46,11 @@ public sealed class CLI
 
             .AddTransient<IContentPackageFuser, ContentPackageFuser>()
             .AddTransient<IModDiffer, ModDiffer>()
+            .AddTransient<IModApplier, ModApplier>()
 
             .AddTransient<ContentPackageFuserCLI, ContentPackageFuserCLI>()
             .AddTransient<ModDifferCLI, ModDifferCLI>()
+            .AddTransient<ModApplierCLI, ModApplierCLI>()
 
             .BuildServiceProvider();
 
@@ -71,6 +73,10 @@ public sealed class CLI
 
         private bool m_disposed;
     }
+
+    [ArgExistingFile]
+    [ArgDescription("Path to a metadata file. Defaults to: exe_dir/BTMetadata.xml. If unset would be generated if missing.")]
+    public string PathToMetadata { get; set; } = Path.Combine(AppContext.BaseDirectory, "BTMetadata.xml");
 
     [HelpHook, ArgShortcut("-?"), ArgDescription("Shows this help")]
     public bool Help { get; set; }
@@ -109,7 +115,7 @@ public sealed class CLI
     }
 
     [ArgActionMethod]
-    [ArgDescription("Diff a mod on a fused base package into target directory.")]
+    [ArgDescription("Diff a mod with a fused base package. Result is stored into target directory.")]
     public async Task DiffMod(
         [ArgRequired(PromptIfMissing = true)]
         [ArgDescription(@"Path a fused content package root (what has been passed to target argument of FusePackage) or its manifest file.")]
@@ -128,9 +134,22 @@ public sealed class CLI
         await services.Provider.GetRequiredService<ModDifferCLI>().Apply(package, mod, target, @override);
     }
 
-    [ArgExistingFile]
-    [ArgDescription("Path to a metadata file. Defaults to: exe_dir/BTMetadata.xml. If unset would be generated if missing.")]
-    public string PathToMetadata { get; set; } = Path.Combine(AppContext.BaseDirectory, "BTMetadata.xml");
+    [ArgActionMethod]
+    [ArgDescription("Apply a mod to a fused base package. Result is stored into target directory.")]
+    public async Task ApplyMod(
+        [ArgRequired(PromptIfMissing = true)]
+        [ArgDescription(@"Path a fused content package root (what has been passed to target argument of FusePackage) or its manifest file.")]
+        string package,
+        [ArgRequired(PromptIfMissing = true)]
+        [ArgDescription(@"Path a mod diff root or its ModDiff.xml file.")]
+        string diff,
+        [ArgRequired(PromptIfMissing = true)]
+        [ArgDescription("Path to a directory to store results into.")]
+        string target)
+    {
+        using var services = new Services(PathToMetadata);
+        await services.Provider.GetRequiredService<ModApplierCLI>().Apply(package, diff, target);
+    }
 
     [ArgActionMethod, ArgDescription("Transform a mod to moddiff format")]
     public void Diff(

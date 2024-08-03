@@ -9,25 +9,25 @@ using static BTModMerger.Tests.CLI.CLITestHelpers;
 
 namespace BTModMerger.Tests.CLI;
 
-public class ModDifferCLI_Tests
+public class ModApplierCLI_Tests
 {
-    private class ModDifferMocker : IModDiffer
+    private class ModApplierMocker : IModApplier
     {
-        public (Task<XDocument> manifest, IEnumerable<(string path, Task<XDocument> data)> files) Apply(XDocument basePackage, Func<string, Task<XDocument>> baseFiles, XDocument modFilelist, Func<string, Task<XDocument>> modFiles, IEnumerable<string> allModXmlFiles, bool alwaysOverride)
+        public (Task<XDocument> manifest, IEnumerable<(string path, Task<XDocument> data)> files, IEnumerable<string> copies) Apply(XDocument basePackage, Func<string, Task<XDocument>> baseFiles, XDocument modDiff, Func<string, Task<XDocument>> modFiles)
         {
             return (
                 Task.FromResult<XDocument>(new(ModDiff())),
-                new[]
-                {
+                [
                     ("file0", Task.FromResult<XDocument>(new()))
-                }
+                ],
+                []
             );
         }
     }
 
-    public static IModDiffer MakeMocker() => new ModDifferMocker();
+    public static IModApplier MakeMocker() => new ModApplierMocker();
 
-    private ModDifferCLI Make(IFileIO fileio) => new(
+    private ModApplierCLI Make(IFileIO fileio) => new(
         fileio,
         MakeMocker()
     );
@@ -50,13 +50,11 @@ public class ModDifferCLI_Tests
         fileio.ChildFiles.Add(modRoot, []);
 
         var cp = MakeValidInput(fileio, Path.Combine(cpRoot, FileNames.ContentPackage), root: ContentPackage());
-        var mod = MakeValidInput(fileio, Path.Combine(modRoot, "filelist.xml"), root: new XElement("contentpackage"));
-        var diff = MakeValidOutput(fileio, Path.Combine(diffRoot, FileNames.ModDiff));
+        var diff = MakeValidInput(fileio, Path.Combine(diffRoot, FileNames.ModDiff), root: ModDiff());
+        var mod = MakeValidOutput(fileio, Path.Combine(modRoot, "filelist.xml"));
 
-        await tool.Apply(cpRoot, modRoot, diffRoot, true);
+        await tool.Apply(cpRoot, diffRoot, modRoot);
 
         ValidateInput(cp);
-        ValidateInput(mod);
-        ValidateOutput(diff);
     }
 }
