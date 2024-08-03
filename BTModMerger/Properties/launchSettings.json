@@ -1,24 +1,8 @@
 {
   "profiles": {
-    "Apply Human": {
+    "FusePackage": {
       "commandName": "Project",
-      "commandLineArgs": "Apply \"c:\\git\\reports\\base.xml\" \"c:\\git\\reports\\diffs\\.\\Human\\Human.xml\" \"c:\\git\\reports\\regen\\.\\Human\\Human.xml\" -override"
-    },
-    "Apply Afflictions": {
-      "commandName": "Project",
-      "commandLineArgs": "Apply \"c:\\git\\reports\\base.xml\" \"c:\\git\\reports\\diffs\\.\\Afflictions.xml\" \"c:\\git\\reports\\regen\\.\\Afflictions.xml\" -override"
-    },
-    "Diff Afflictions": {
-      "commandName": "Project",
-      "commandLineArgs": "Diff \"c:\\git\\reports\\base.xml\" \"C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\602960\\3028141718\\Override\\Afflictions.xml\" \"c:\\git\\reports\\diffs\\.\\Afflictions.xml\""
-    },
-    "Apply DrunkenWalk": {
-      "commandName": "Project",
-      "commandLineArgs": "Apply \"c:\\git\\reports\\base.xml\" \"c:\\git\\reports\\diffs\\.\\Human\\Animations\\DrunkenWalk.xml\" \"c:\\git\\reports\\regen\\.\\Human\\Animations\\DrunkenWalk.xml\" -override"
-    },
-    "Diff DrunkenWalk": {
-      "commandName": "Project",
-      "commandLineArgs": "Diff \"c:\\git\\reports\\base.xml\" \"C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\602960\\3028141718\\Override\\Human\\Animations\\DrunkenWalk.xml\" \"c:\\git\\reports\\diffs\\.\\Human\\Animations\\DrunkenWalk.xml\""
+      "commandLineArgs": "FusePackage \"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Barotrauma\\Content\\ContentPackages\\Vanilla.xml\" c:\\git\\BaroFused"
     }
   }
 }
