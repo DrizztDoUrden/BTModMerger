@@ -8,8 +8,6 @@ using static BTModMerger.Core.Schema.BTMMSchema;
 
 namespace BTModMerger.Tests.LargeTools;
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-
 public class ModDiffer_Tests
 {
     public static ModDiffer Make() => new(
@@ -24,8 +22,8 @@ public class ModDiffer_Tests
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
         {
             await tool.Apply(
-                new XDocument(), async s => null!,
-                new XDocument(), async s => null!,
+                new XDocument(), s => throw new InvalidOperationException(),
+                new XDocument(), s => throw new InvalidOperationException(),
                 [],
                 alwaysOverride: false
             ).manifest;
@@ -34,8 +32,8 @@ public class ModDiffer_Tests
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
         {
             await tool.Apply(
-                new XDocument(new XElement("e")), async s => null!,
-                new XDocument(), async s => null!,
+                new XDocument(new XElement("e")), s => throw new InvalidOperationException(),
+                new XDocument(), s => throw new InvalidOperationException(),
                 [],
                 alwaysOverride: false
             ).manifest;
@@ -44,8 +42,8 @@ public class ModDiffer_Tests
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
         {
             await tool.Apply(
-                new XDocument(new XElement("ContentPackage")), async s => null!,
-                new XDocument(), async s => null!,
+                new XDocument(new XElement("ContentPackage")), s => throw new InvalidOperationException(),
+                new XDocument(), s => throw new InvalidOperationException(),
                 [],
                 alwaysOverride: false
             ).manifest;
@@ -54,8 +52,8 @@ public class ModDiffer_Tests
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
         {
             await tool.Apply(
-                new XDocument(ContentPackage()), async s => null!,
-                new XDocument(new XElement("e")), async s => null!,
+                new XDocument(ContentPackage()), s => throw new InvalidOperationException(),
+                new XDocument(new XElement("e")), s => throw new InvalidOperationException(),
                 [],
                 alwaysOverride: false
             ).manifest;
@@ -64,8 +62,8 @@ public class ModDiffer_Tests
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
         {
             await tool.Apply(
-                new XDocument(ContentPackage(new XElement("items"))), async s => new XDocument(),
-                new XDocument(new XElement("ContentPackage", new XElement("items"))), async s => null!,
+                new XDocument(ContentPackage(new XElement("items"))), s => Task.FromResult<XDocument>(new()),
+                new XDocument(new XElement("ContentPackage", new XElement("items"))), s => throw new InvalidOperationException(),
                 [],
                 alwaysOverride: false
             ).manifest;
@@ -78,8 +76,8 @@ public class ModDiffer_Tests
         var tool = Make();
 
         var (manifest, files) = tool.Apply(
-            new XDocument(ContentPackage()), async s => null!,
-            new XDocument(new XElement("ContentPackage")), async s => null!,
+            new XDocument(ContentPackage()), s => throw new InvalidOperationException(),
+            new XDocument(new XElement("ContentPackage")), s => throw new InvalidOperationException(),
             [],
             alwaysOverride: false
         );
@@ -112,8 +110,8 @@ public class ModDiffer_Tests
         );
 
         var (manifestTask, files) = tool.Apply(
-            doc, async s => new XDocument(new XElement(s)),
-            mod, async s => new XDocument(new XElement(s, new XElement(s[..^1]))),
+            doc, s => Task.FromResult<XDocument>(new(new XElement(s))),
+            mod, s => Task.FromResult<XDocument>(new(new XElement(s, new XElement(s[..^1])))),
             ["missing.xml"],
             alwaysOverride: false
         );
@@ -168,5 +166,3 @@ public class ModDiffer_Tests
         );
     }
 }
-
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
