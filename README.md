@@ -1,6 +1,10 @@
 [![Coverage Status](https://badge.coveralls.io/repos/github/DrizztDoUrden/BTModMerger/badge.svg?branch=master&kill_cache=1)](https://badge.coveralls.io/github/DrizztDoUrden/BTModMerger?branch=master)
 [![CodeQL](https://github.com/DrizztDoUrden/BTModMerger/actions/workflows/codeql.yml/badge.svg?branch=master&event=push)](https://github.com/DrizztDoUrden/BTModMerger/actions/workflows/codeql.yml)
 
+# The most important (for me) thing
+
+I would greatly appreciate if  mods that use this would add a link to the repo or release or kind of whatever to its post/description.
+
 # BTModMerger
 
 A tool to transform [Barotrauma](https://barotraumagame.com) mods into a diff-like format and reapply them to "base" files, including multiple in a sequence. This allows to automatically make compatibility patches for mods that override the same prefab. In theory, this can also be useful for versioning the mod source to automatically reapply it to newer versions of the same base file.
