@@ -3,6 +3,10 @@
     "FusePackage": {
       "commandName": "Project",
       "commandLineArgs": "FusePackage \"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Barotrauma\\Content\\ContentPackages\\Vanilla.xml\" c:\\git\\BaroFused"
+    },
+    "DiffMod COL": {
+      "commandName": "Project",
+      "commandLineArgs": "DiffMod c:\\git\\BaroFused \"C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\602960\\3028141718\" c:\\git\\COLDiff"
     }
   }
 }

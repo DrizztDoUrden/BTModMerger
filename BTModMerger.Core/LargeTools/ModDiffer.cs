@@ -66,8 +66,8 @@ public class ModDiffer(
                     ?? throw new InvalidDataException($"Mod filelist has a child element <{name.Fancify()}> with no file attribute");
 
                 var path = filename
-                    .Replace(@"ModDir%/", "")
-                    .Replace(@"ModDir%\", "");
+                    .Replace(@"%ModDir%/", "")
+                    .Replace(@"%ModDir%\", "");
 
                 return (path, Task.Run(async () =>
                 {

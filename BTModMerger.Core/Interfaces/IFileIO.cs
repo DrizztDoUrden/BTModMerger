@@ -121,8 +121,8 @@ public interface IFileIO
         return (await OpenInputAsync(path, ct), async filename =>
         {
             var cleanFilename = filename
-                .Replace(@"ModDir%/", "")
-                .Replace(@"ModDir%\", "");
+                .Replace(@"%ModDir%/", "")
+                .Replace(@"%ModDir%\", "");
 
             return await OpenInputAsync(Path.Combine(directory, cleanFilename), ct);
         });
