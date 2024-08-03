@@ -26,6 +26,6 @@ public class ModDifferCLI(
 
         var manifest = await diff.manifest;
 
-        await fileio.SaveResultAsync(Path.Combine(targetLocation, FileNames.ContentPackage), manifest);
+        await fileio.SaveResultAsync(Path.Combine(targetLocation, FileNames.ModDiff), manifest);
     }
 }

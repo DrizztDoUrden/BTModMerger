@@ -16,28 +16,32 @@ public interface IFileIO
     DateTime GetLastWriteTimeUtc(string path);
     IEnumerable<string> GetFiles(string path, string pattern = "*", SearchOption options = SearchOption.TopDirectoryOnly);
 
-    public sealed XmlReader OpenStandardInput() => XmlReader.Create(OpenStandardInputStream(), new()
+    public sealed XmlReader OpenStandardInput(bool async = false) => XmlReader.Create(OpenStandardInputStream(), new()
     {
         CloseInput = false,
+        Async = async,
     });
 
-    public sealed XmlReader OpenRead(string path) => XmlReader.Create(OpenReadStream(path), new()
+    public sealed XmlReader OpenRead(string path, bool async = false) => XmlReader.Create(OpenReadStream(path), new()
     {
         CloseInput = true,
+        Async = async,
     });
 
-    public sealed XmlWriter OpenStandardOutput() => XmlWriter.Create(OpenStandardOutputStream(), new()
+    public sealed XmlWriter OpenStandardOutput(bool async = false) => XmlWriter.Create(OpenStandardOutputStream(), new()
     {
         CloseOutput = false,
         NewLineOnAttributes = false,
         Indent = true,
+        Async = async,
     });
 
-    public sealed XmlWriter OpenWrite(string path) => XmlWriter.Create(OpenWriteStream(path), new()
+    public sealed XmlWriter OpenWrite(string path, bool async = false) => XmlWriter.Create(OpenWriteStream(path), new()
     {
         CloseOutput = true,
         NewLineOnAttributes = false,
         Indent = true,
+        Async = async,
     });
 
     public sealed XDocument OpenInput([NotNull] ref string? inputPath)
@@ -64,13 +68,13 @@ public interface IFileIO
 
     public sealed async Task<XDocument> OpenInputAsync(string inputPath, CancellationToken? ct = null)
     {
-        using var baseFile = OpenRead(inputPath);
+        using var baseFile = OpenRead(inputPath, async: true);
         return await XDocument.LoadAsync(baseFile, LoadOptions.None, ct ?? CancellationToken.None);
     }
 
     public sealed async Task<XDocument> OpenInputAsync(CancellationToken? ct = null)
     {
-        using var baseFile = OpenStandardInput();
+        using var baseFile = OpenStandardInput(async: true);
         return await XDocument.LoadAsync(baseFile, LoadOptions.None, ct ?? CancellationToken.None);
     }
 
@@ -92,8 +96,8 @@ public interface IFileIO
             return;
 
         using var writer = string.IsNullOrWhiteSpace(outputPath)
-            ? OpenStandardOutput()
-            : OpenWrite(outputPath);
+            ? OpenStandardOutput(async: true)
+            : OpenWrite(outputPath, async: true);
 
         await result.SaveAsync(writer, ct ?? CancellationToken.None);
     }
