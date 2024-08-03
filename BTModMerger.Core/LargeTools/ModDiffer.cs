@@ -57,7 +57,7 @@ public class ModDiffer(
             throw new InvalidDataException("Mod filelist should have ContentPackage as root element");
 
         return modFilelist.Root!.Elements()
-            .Where(e => e.GetBTAttributeCIS("file")?.EndsWith(".xml") ?? false)
+            .Where(e => e.GetBTAttributeCIS("file")?.EndsWith(".xml") ?? throw new InvalidDataException($"Some weird shit in without file attribute."))
             .Select(modElement =>
             {
                 var name = modElement.Name;

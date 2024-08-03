@@ -67,15 +67,15 @@ public class ContentPackageFuser_Tests
 
         var doc = new XDocument(
             new XElement("ContentPackage",
-                new XElement("items", new XAttribute("file", "items")),
-                new XElement("items", new XAttribute("file", "items")),
-                new XElement("jobs", new XAttribute("file", "jobs"))
+                new XElement("items", new XAttribute("file", "items.xml")),
+                new XElement("items", new XAttribute("file", "items.xml")),
+                new XElement("jobs", new XAttribute("file", "jobs.xml"))
             )
         );
 
         var (manifestTask, files) = tool.Apply(
             doc,
-            s => Task.FromResult<XDocument>(new(new XElement(s, new XElement(s[..^1]))))
+            s => Task.FromResult<XDocument>(new(new XElement(s[..^4], new XElement(s[..^5]))))
         );
 
         await Assert.CollectionAsync(
@@ -105,12 +105,12 @@ public class ContentPackageFuser_Tests
         Assert.Collection(
             manifest.Root.Elements().OrderBy(e => e.Name.LocalName),
             element => Assert.Equal(
-                XElementComparator.NormalizeElement(new XElement("items", PathAttribute("items.xml"), Part("items"), Part("items"))),
+                XElementComparator.NormalizeElement(new XElement("items", PathAttribute("items.xml"), Part("items.xml"), Part("items.xml"))),
                 XElementComparator.NormalizeElement(element),
                 XNode.DeepEquals
             ),
             element => Assert.Equal(
-                XElementComparator.NormalizeElement(new XElement("jobs", PathAttribute("jobs.xml"), Part("jobs"))),
+                XElementComparator.NormalizeElement(new XElement("jobs", PathAttribute("jobs.xml"), Part("jobs.xml"))),
                 XElementComparator.NormalizeElement(element),
                 XNode.DeepEquals
             )

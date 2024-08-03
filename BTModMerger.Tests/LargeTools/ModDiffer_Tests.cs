@@ -103,15 +103,15 @@ public class ModDiffer_Tests
 
         var mod = new XDocument(
             new XElement("ContentPackage",
-                new XElement("items", new XAttribute("file", "items")),
-                new XElement("items", new XAttribute("file", "items")),
-                new XElement("jobs", new XAttribute("file", "jobs"))
+                new XElement("items", new XAttribute("file", "items.xml")),
+                new XElement("items", new XAttribute("file", "items.xml")),
+                new XElement("jobs", new XAttribute("file", "jobs.xml"))
             )
         );
 
         var (manifestTask, files) = tool.Apply(
             doc, s => Task.FromResult<XDocument>(new(new XElement(s))),
-            mod, s => Task.FromResult<XDocument>(new(new XElement(s, new XElement(s[..^1])))),
+            mod, s => Task.FromResult<XDocument>(new(new XElement(s, new XElement(s[..^5])))),
             ["missing.xml"],
             alwaysOverride: false
         );
@@ -121,19 +121,19 @@ public class ModDiffer_Tests
             async result =>
             {
                 var (path, data) = result;
-                Assert.Equal("items", path);
+                Assert.Equal("items.xml", path);
                 Assert.Empty((await data).Root!.Elements());
             },
             async result =>
             {
                 var (path, data) = result;
-                Assert.Equal("items", path);
+                Assert.Equal("items.xml", path);
                 Assert.Empty((await data).Root!.Elements());
             },
             async result =>
             {
                 var (path, data) = result;
-                Assert.Equal("jobs", path);
+                Assert.Equal("jobs.xml", path);
                 Assert.Empty((await data).Root!.Elements());
             });
 
@@ -149,17 +149,17 @@ public class ModDiffer_Tests
                 XNode.DeepEquals
             ),
             element => Assert.Equal(
-                XElementComparator.NormalizeElement(new XElement("items", PathAttribute("items"), BaseAttribute("items.xml"))),
+                XElementComparator.NormalizeElement(new XElement("items", PathAttribute("items.xml"), BaseAttribute("items.xml"))),
                 XElementComparator.NormalizeElement(element),
                 XNode.DeepEquals
             ),
             element => Assert.Equal(
-                XElementComparator.NormalizeElement(new XElement("items", PathAttribute("items"), BaseAttribute("items.xml"))),
+                XElementComparator.NormalizeElement(new XElement("items", PathAttribute("items.xml"), BaseAttribute("items.xml"))),
                 XElementComparator.NormalizeElement(element),
                 XNode.DeepEquals
             ),
             element => Assert.Equal(
-                XElementComparator.NormalizeElement(new XElement("jobs", PathAttribute("jobs"), BaseAttribute("jobs.xml"))),
+                XElementComparator.NormalizeElement(new XElement("jobs", PathAttribute("jobs.xml"), BaseAttribute("jobs.xml"))),
                 XElementComparator.NormalizeElement(element),
                 XNode.DeepEquals
             )

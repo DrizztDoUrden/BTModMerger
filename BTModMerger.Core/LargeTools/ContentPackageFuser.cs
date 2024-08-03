@@ -39,7 +39,7 @@ public class ContentPackageFuser(
             throw new InvalidDataException("Content package should have ContentPackage as root element");
 
         return contentPackage.Root!.Elements()
-            .Where(e => e.GetBTAttributeCIS("file")?.EndsWith(".xml") ?? false)
+            .Where(e => e.GetBTAttributeCIS("file")?.EndsWith(".xml") ?? throw new InvalidDataException($"Some weird shit in without file attribute."))
             .GroupBy(e => e.Name)
             .Select(items =>
             {
