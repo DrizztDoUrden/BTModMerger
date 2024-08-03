@@ -4,6 +4,7 @@
 # The most important (for me) thing
 
 I would greatly appreciate if  mods that use this would add a link to the repo or release or kind of whatever to its post/description.
+Also, feel free to add any problems as issues, I would likely read it and fix it on next weekend. If it is couple of lines I can even fix it on the currnet (european) evening.
 
 # BTModMerger
 
