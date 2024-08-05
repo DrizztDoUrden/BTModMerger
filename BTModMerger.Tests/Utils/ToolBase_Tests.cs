@@ -81,27 +81,25 @@ public class ToolBase_Tests
 
     [Fact]
     public static void FilterBySubscripts_Miss() => Assert.Empty(
-        ToolBase.FilterBySubscripts(
+        ToolBase.FilterBy(
             [
                 new("e"),
                 new("e"),
             ],
             ("@id", "1"),
-            "",
             BTMetadata.Test
         )
     );
 
     [Fact]
     public static void FilterBySubscripts_Multiple() => Assert.Collection(
-        ToolBase.FilterBySubscripts(
+        ToolBase.FilterBy(
             [
                 new("e", new XAttribute("identifier", "id")),
                 new("e", new XAttribute("identifier", "i")),
                 new("e", new XAttribute("identifier", "id")),
             ],
             ("@id", null),
-            "",
             BTMetadata.Test
         ),
         e => Assert.Equal(e, new XElement("e", new XAttribute("identifier", "id")), XNode.DeepEquals),
@@ -110,7 +108,7 @@ public class ToolBase_Tests
 
     [Fact]
     public static void FilterBySubscripts() => Assert.Collection(
-        ToolBase.FilterBySubscripts(
+        ToolBase.FilterBy(
             [
                 new("e", new XAttribute("identifier", "i")),
                 new("e", new XAttribute("identifier", "id")),
@@ -120,7 +118,6 @@ public class ToolBase_Tests
                 new("e", new XAttribute("identifier", "i")),
             ],
             ("@id", "1"),
-            "",
             BTMetadata.Test
         ),
         e => Assert.Equal(e, new("e", new XAttribute("identifier", "id"), new XAttribute("hit", "true")), XNode.DeepEquals)

@@ -57,7 +57,7 @@ public static class BTMMSchema
         new XAttribute(Attributes.Path, path)
     );
 
-    public static XElement RemoveElement(string path, int amount, XElement child)
+    public static XElement RemoveElement(string path, XElement child, int amount = 1)
     {
         var ret = new XElement(child)
         {
@@ -83,7 +83,7 @@ public static class BTMMSchema
                 return copy;
             });
 
-    public static XElement AddElements(string path, int amount, XElement child)
+    public static XElement AddElements(string path, XElement child, int amount = 1)
     {
         var ret = new XElement(child);
         if (!string.IsNullOrEmpty(path)) ret.SetAttributeSorting(Attributes.Path, path);

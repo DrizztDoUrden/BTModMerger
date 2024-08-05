@@ -58,15 +58,16 @@ public static class ToolBase
         return (null, int.Parse(subscript));
     }
 
-    public static IEnumerable<XElement> FilterBySubscript(this IEnumerable<XElement> elements, string? subscript, string diffPath, BTMetadata metadata)
+    public static IEnumerable<XElement> FilterBy(this IEnumerable<XElement> elements, string identifier, BTMetadata metadata)
+        => elements.Where(e => e.GetBTIdentifier(metadata) == identifier);
+
+    public static IEnumerable<XElement> FilterBy(this IEnumerable<XElement> elements, int index)
+        => elements.Skip(index).Take(1);
+
+    public static IEnumerable<XElement> FilterBySubscript(this IEnumerable<XElement> elements, string? subscript, BTMetadata metadata)
     {
         var (id, idx) = ParseSubscript(subscript);
-
-        if (id is not null)
-            return elements.Where(e => e.GetBTIdentifier(metadata) == id);
-        if (idx != -1)
-            return elements.Skip(idx).Take(1);
-        return elements;
+        return elements.FilterBy((id, idx), metadata);
     }
 
     public static (string? ss0, string? ss1) ExtractSubscripts(ref string from, string diffPath)
@@ -77,10 +78,17 @@ public static class ToolBase
         );
     }
 
-    public static IEnumerable<XElement> FilterBySubscripts(this IEnumerable<XElement> elements, (string? ss0, string? ss1) subscripts, string diffPath, BTMetadata metadata)
+    public static IEnumerable<XElement> FilterBy(this IEnumerable<XElement> elements, (string? ss0, string? ss1) subscripts, BTMetadata metadata)
     {
-        elements = elements.FilterBySubscript(subscripts.ss0, diffPath, metadata);
-        elements = elements.FilterBySubscript(subscripts.ss1, diffPath, metadata);
+        elements = elements.FilterBySubscript(subscripts.ss0, metadata);
+        elements = elements.FilterBySubscript(subscripts.ss1, metadata);
+        return elements;
+    }
+
+    public static IEnumerable<XElement> FilterBy(this IEnumerable<XElement> elements, (string? id, int idx) subscripts, BTMetadata metadata)
+    {
+        if (subscripts.id is not null) elements = elements.FilterBy(subscripts.id, metadata);
+        if (subscripts.idx != -1) elements = elements.FilterBy(subscripts.idx);
         return elements;
     }
 

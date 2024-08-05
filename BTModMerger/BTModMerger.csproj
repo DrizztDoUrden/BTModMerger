@@ -30,7 +30,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\BTModMerger.Core\BTModMerger.Core.csproj" />
-	</ItemGroup>
+		<ProjectReference Include="..\BTModMerger.Core\BTModMerger.Core.csproj">
+		  <Private>True</Private>
+		</ProjectReference>
 
+		<Content Include="..\BTModMerger.Core\Schema\BTMetadata.xml">
+			<Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
 </Project>

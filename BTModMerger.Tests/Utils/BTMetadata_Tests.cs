@@ -107,18 +107,14 @@ public class BTMetadata_Tests
         return (XElement)container;
     }
 
-    private static void TestStringArrayField(string[] parsed, XElement property)
+    private static void TestStringArrayField(HashSet<string> parsed, XElement property)
     {
-        Assert.Equal(GetTestElement(property).Elements().Count(), parsed.Length);
-        for (var i = 0; i < parsed.Length; ++i)
-        {
-            var item = property.Elements("string").Skip(i).FirstOrDefault();
-            Assert.NotNull(item);
-            Assert.Equal(item.Value, parsed[i], true);
-        }
+        Assert.Equal(GetTestElement(property).Elements().Count(), parsed.Count());
+        var propertyValues = property.Elements("string").Select(e => e.Value.ToLower()).ToHashSet();
+        Assert.Equal(parsed, propertyValues, HashSet<string>.CreateSetComparer());
     }
 
-    private static void TestStringArrayField(string[] parsed, XContainer container, XName name)
+    private static void TestStringArrayField(HashSet<string> parsed, XContainer container, XName name)
     {
         var property = GetTestElement(container, nameof(BTMetadata), name);
         TestStringArrayField(parsed, property);

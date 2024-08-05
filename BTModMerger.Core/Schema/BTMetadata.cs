@@ -8,7 +8,7 @@ public class BTMetadata
     public class IdMapping
     {
         public string Element { get; set; } = string.Empty;
-        public string[] Ids { get; set; } = [];
+        public HashSet<string> Ids { get; set; } = [];
     }
 
     public static readonly BTMetadata Test = new()
@@ -18,6 +18,8 @@ public class BTMetadata
         Tricky = ["tricky"],
         IndexByFilename = ["indexbyfilename"],
         Partial = ["partial"],
+        RootContainers = ["rootcontainer"],
+        OverrideNodes = ["override"],
         IdMappings = [
             new()
             {
@@ -30,11 +32,13 @@ public class BTMetadata
         ],
     };
 
-    public string[] Indexed { get; set; } = [];
-    public string[] Indexes { get; set; } = [];
-    public string[] Tricky { get; set; } = [];
-    public string[] IndexByFilename { get; set; } = [];
-    public string[] Partial { get; set; } = [];
+    public HashSet<string> Indexed { get; set; } = [];
+    public HashSet<string> Indexes { get; set; } = [];
+    public HashSet<string> Tricky { get; set; } = [];
+    public HashSet<string> IndexByFilename { get; set; } = [];
+    public HashSet<string> Partial { get; set; } = [];
+    public HashSet<string> RootContainers { get; set; } = [];
+    public HashSet<string> OverrideNodes { get; set; } = [];
     public IdMapping[] IdMappings { get; set; } = [];
 
     public string? GetId(XElement element)
@@ -84,17 +88,19 @@ public class BTMetadata
 
     private void ToLower()
     {
-        Indexed = Indexed.Select(s => s.ToLower()).ToArray();
-        Indexes = Indexes.Select(s => s.ToLower()).ToArray();
-        Tricky = Tricky.Select(s => s.ToLower()).ToArray();
-        IndexByFilename = IndexByFilename.Select(s => s.ToLower()).ToArray();
-        Partial = Partial.Select(s => s.ToLower()).ToArray();
+        Indexed = Indexed.Select(s => s.ToLower()).ToHashSet();
+        Indexes = Indexes.Select(s => s.ToLower()).ToHashSet();
+        Tricky = Tricky.Select(s => s.ToLower()).ToHashSet();
+        IndexByFilename = IndexByFilename.Select(s => s.ToLower()).ToHashSet();
+        Partial = Partial.Select(s => s.ToLower()).ToHashSet();
+        RootContainers = RootContainers.Select(s => s.ToLower()).ToHashSet();
+        OverrideNodes = OverrideNodes.Select(s => s.ToLower()).ToHashSet();
         IdMappings = IdMappings
             .Select(m
                 => new IdMapping
                 {
                     Element = m.Element.ToLower(),
-                    Ids = m.Ids.Select(id => id.ToLower()).ToArray(),
+                    Ids = m.Ids.Select(id => id.ToLower()).ToHashSet(),
                 }
             )
             .ToArray();
@@ -107,19 +113,19 @@ public class BTMetadata
                 mapping =>
                 {
                     var ids = mapping.Ids;
-                    var firstId = ids[0];
+                    var firstId = ids.First();
 
                     return new KeyValuePair<string, Func<XElement, string?>>(
                         mapping.Element,
-                        ids.Length > 1
-                        ? e =>
-                        {
-                            var parts = ids.Select(id => e.GetBTAttributeCIS(id)).ToArray();
-                            return parts.Any(part => part is not null)
-                                ? string.Join(":", parts.Select(part => part ?? "btmm~~none"))
-                                : null;
-                        }
-                    : e => e.GetBTAttributeCIS(firstId)
+                        ids.Count > 1
+                            ? e =>
+                            {
+                                var parts = ids.Select(id => e.GetBTAttributeCIS(id)).ToArray();
+                                return parts.Any(part => part is not null)
+                                    ? string.Join(":", parts.Select(part => part ?? "btmm~~none"))
+                                    : null;
+                            }
+                            : e => e.GetBTAttributeCIS(firstId)
                     );
                 }
             )

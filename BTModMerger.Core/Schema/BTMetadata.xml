@@ -11,6 +11,7 @@
 		<string>SubContainer</string>
 		<string>Inventory</string>
 		<string>Wearable</string>
+		<string>InfoTexts</string>
 	</Indexed>
 	<Indexes>
 		<!--not yet implemented. whine on GH or something if you need/want it. it may or may not help-->
@@ -40,6 +41,17 @@
 		<string>Talents</string>
 		<string>NPCSets</string>
 	</Partial>
+	<RootContainers>
+		<!--root containers-->
+		<string>Items</string>
+		<string>Afflictions</string>
+		<string>Talents</string>
+		<string>NPCSets</string>
+		<string>Jobs</string>
+	</RootContainers>
+	<OverrideNodes>
+		<string>Override</string>
+	</OverrideNodes>
 	<IdMappings>
 		<IdMapping>
 			<Element>Character</Element>
@@ -82,6 +94,12 @@
 			<Element>Ragdoll</Element>
 			<Ids>
 				<string>Type</string>
+			</Ids>
+		</IdMapping>
+		<IdMapping>
+			<Element>Charactervariant</Element>
+			<Ids>
+				<string>speciesname</string>
 			</Ids>
 		</IdMapping>
 	</IdMappings>

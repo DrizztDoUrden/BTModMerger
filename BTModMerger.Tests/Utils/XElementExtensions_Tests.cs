@@ -10,9 +10,9 @@ public class XElementExtensions_Tests
     [Fact]
     public void Override()
     {
-        Assert.True(new XElement("oVeRRide").IsBTOverride());
-        Assert.False(new XElement("Jobs").IsBTOverride());
-        Assert.False(new XElement(Namespace + "Override").IsBTOverride());
+        Assert.True(new XElement("oVeRRide").IsBTOverride(BTMetadata.Test));
+        Assert.False(new XElement("Jobs").IsBTOverride(BTMetadata.Test));
+        Assert.False(new XElement(Namespace + "Override").IsBTOverride(BTMetadata.Test));
     }
 
     [Fact]

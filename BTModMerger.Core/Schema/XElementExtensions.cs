@@ -7,21 +7,35 @@ using static BTMMSchema;
 
 public static class XElementExtensions
 {
-    public static bool IsBTOverride(this XElement element) => element.Name.Namespace == XNamespace.None && CompareCIS(element.Name.LocalName, "override");
+    public static bool IsBTOverride(this XElement element, BTMetadata metadata)
+        => element.Name.Namespace == XNamespace.None && metadata.OverrideNodes.Contains(element.Name.LocalName.ToLower());
 
-    public static int GetBTMMAmount(this XElement element) => int.Parse(element.Attribute(Attributes.Amount)?.Value ?? "1");
-    public static string? GetBTMMPath(this XElement element) => element.Attribute(Attributes.Path)?.Value;
+    public static bool IsRootContainer(this XElement element, BTMetadata metadata)
+        => element.Name.Namespace == XNamespace.None && metadata.RootContainers.Contains(element.Name.LocalName.ToLower());
 
-    public static string? GetBTIdentifier(this XElement element, BTMetadata metadata) => metadata.GetId(element);
+    public static int GetBTMMAmount(this XElement element)
+        => int.Parse(element.Attribute(Attributes.Amount)?.Value ?? "1");
+
+    public static string? GetBTMMPath(this XElement element)
+        => element.Attribute(Attributes.Path)?.Value;
+
+    public static string? GetBTIdentifier(this XElement element, BTMetadata metadata)
+        => metadata.GetId(element);
+
+    public static bool IsEqualCIS(this XName left, XName right)
+        => left.Namespace == right.Namespace && CompareCIS(left.LocalName, right.LocalName);
 
     public static bool IsNameEqualCIS(this XElement element, XName name)
-        => element.Name.Namespace == name.Namespace && CompareCIS(element.Name.LocalName, name.LocalName);
+        => element.Name.IsEqualCIS(name);
+
+    public static bool IsNameEqualCIS(this XAttribute attribute, XName name)
+        => attribute.Name.IsEqualCIS(name);
 
     public static string? GetBTAttributeCIS(this XElement element, XName name)
-        => element.Attributes().FirstOrDefault(attr => attr.Name.Namespace == name.Namespace && CompareCIS(attr.Name.LocalName, name.LocalName))?.Value;
+        => element.FindBTAttributeCIS(name)?.Value;
 
     public static XAttribute? FindBTAttributeCIS(this XElement element, XName name)
-        => element.Attributes().FirstOrDefault(attr => attr.Name.Namespace == name.Namespace && CompareCIS(attr.Name.LocalName, name.LocalName));
+        => element.Attributes().FirstOrDefault(attr => attr.IsNameEqualCIS(name));
 
     private static bool CompareCIS(string l, string r)
         => l.Equals(r, StringComparison.CurrentCultureIgnoreCase);
@@ -36,7 +50,7 @@ public static class XElementExtensions
         => metadata.Indexed.Contains(element.Name.LocalName.ToLower())
             || element.IsTricky(metadata);
 
-    public static void SetAttributeCIS(this XElement target, string name, object value)
+    public static void SetAttributeCIS(this XElement target, XName name, object value)
     {
         var attr = target.FindBTAttributeCIS(name);
 

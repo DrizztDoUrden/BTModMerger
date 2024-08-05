@@ -167,7 +167,7 @@ public sealed class Applier(
                     .Where(e => e.Attribute(Attributes.File)?.Value is null || e.Attribute(Attributes.File)?.Value == fileName);
             }
 
-            fromElems = fromElems.FilterBySubscripts(sss, diffPath, metadata);
+            fromElems = fromElems.FilterBy(sss, metadata);
 
             var fromArray = fromElems.Take(2).ToArray();
 
@@ -190,7 +190,7 @@ public sealed class Applier(
                     }
                     .SelectMany(e => e);
 
-                toElems = toElems.FilterBySubscripts(sss, diffPath, metadata);
+                toElems = toElems.FilterBy(sss, metadata);
                 var toArray = toElems.Take(2).ToArray();
 
                 if (toArray.Length == 1)
