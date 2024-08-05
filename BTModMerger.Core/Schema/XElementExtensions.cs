@@ -11,7 +11,8 @@ public static class XElementExtensions
         => element.Name.Namespace == XNamespace.None && metadata.OverrideNodes.Contains(element.Name.LocalName.ToLower());
 
     public static bool IsRootContainer(this XElement element, BTMetadata metadata)
-        => element.Name.Namespace == XNamespace.None && metadata.RootContainers.Contains(element.Name.LocalName.ToLower());
+        => element.Name.Namespace == XNamespace.None && metadata.RootContainers.Contains(element.Name.LocalName.ToLower()) ||
+            element.Name == Elements.FusedBase;
 
     public static int GetBTMMAmount(this XElement element)
         => int.Parse(element.Attribute(Attributes.Amount)?.Value ?? "1");

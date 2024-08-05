@@ -14,6 +14,7 @@ using static BTModMerger.Core.ToolBase;
 namespace BTModMerger.Core.Tools;
 
 public class Differ(
+    ILogger<Differ> logger,
     BTMetadata metadata
 )
     : IDiffer
@@ -70,19 +71,29 @@ public class Differ(
         return (id, idx);
     }
 
-    private (XElement? found, string? subPath) FindTargetElement(XElement searched, XContainer searchedParent, XContainer searchTarget, string fromPath, string targetPath)
+    private (XElement? found, string? subPath) FindTargetElement(XElement searched, XContainer? searchedParent, XContainer searchTarget, string fromPath, string targetPath)
     {
-        var (id, idx) = FindItem(searched, searchedParent);
+        var (id, idx) = searchedParent is not null
+            ? FindItem(searched, searchedParent)
+            : (searched.GetBTIdentifier(metadata), -1);
 
         var options = searchTarget
             .Elements(searched.Name)
             .FilterBy((id, idx), metadata)
-            .Take(2).ToImmutableArray();
+            .ToImmutableArray();
 
         if (options.Length > 1)
-            throw new InvalidDataException($"Multiple potential targets found in <{targetPath}> when searching for {fromPath}.");
+        {
+            var uniqueOptions = options
+                .Select(XElementComparator.NormalizeElement)
+                .Deduplicate();
 
-        return (options.Length == 1 ? options[0] : null, FormPath(searched.Name, id, idx));
+            logger.LogWarning("Duplicate item <{name}> in {targetPath}",
+                FormPath(searched.Name, id, idx),
+                targetPath);
+        }
+
+        return (options.Length >= 1 ? options[^1] : null, FormPath(searched.Name, id, idx));
     }
 
     private void ProcessRootElement(XElement @base, XContainer baseContainer, string basePath, string btmmPath, XElement mod, string modPath, bool @override, bool alwaysOverride, XElement target)
@@ -91,6 +102,22 @@ public class Differ(
         {
             ProcessRootElementChildren(@base, baseContainer, basePath, btmmPath, mod, modPath, true, alwaysOverride, target);
             return;
+        }
+
+        if (mod.Name != @base.Name)
+        {
+            var (found, subPath) = FindTargetElement(mod, mod.Parent, @base, modPath, basePath);
+
+            if (found is null)
+            {
+                target.Add(AddElements(btmmPath, mod));
+                return;
+            }
+            else
+            {
+                @basePath = CombineBTMMPaths(@basePath, subPath);
+                @base = found;
+            }
         }
 
         btmmPath = CombineBTMMPaths(btmmPath, FormPath(mod, mod.Parent!));
@@ -109,20 +136,6 @@ public class Differ(
         foreach (var child in mod.Elements())
         {
             var childPath = CombineBTMMPaths(modPath, FormPath(child, mod));
-
-            if (!child.IsBTOverride(metadata))
-            {
-                var (found, _) = FindTargetElement(child, mod, @base, childPath, basePath);
-
-                if (found is null)
-                {
-                    target.Add(AddElements(btmmPath, child));
-                    continue;
-                }
-
-                @base = found;
-            }
-
             ProcessRootElement(@base, baseContainer, basePath, btmmPath, child, childPath, @override, alwaysOverride, target);
         }
 

@@ -25,6 +25,14 @@
 		<string>Affliction</string>
 		<string>SlotIcon</string>
 		<string>Fabricate</string>
+		<string>ExoImpact</string>
+		<string>ExoStep</string>
+		<string>MagImpact</string>
+		<string>SmallWepImpact</string>
+		<string>MediumWepImpact</string>
+		<string>BigWepImpact</string>
+		<string>Sound</string>
+		<string>PreferredContainer</string>
 	</Tricky>
 	<IndexByFilename>
 		<!--things that should be indexed by filename when diffed from or applied to a fused base file-->
@@ -48,6 +56,11 @@
 		<string>Talents</string>
 		<string>NPCSets</string>
 		<string>Jobs</string>
+		<string>Sounds</string>
+		<string>StartItems</string>
+		<string>Style</string>
+		<string>Corpses</string>
+		<string>InfoTexts</string>
 	</RootContainers>
 	<OverrideNodes>
 		<string>Override</string>
@@ -97,9 +110,28 @@
 			</Ids>
 		</IdMapping>
 		<IdMapping>
-			<Element>Charactervariant</Element>
+			<Element>CharacterVariant</Element>
 			<Ids>
-				<string>speciesname</string>
+				<string>SpeciesName</string>
+			</Ids>
+		</IdMapping>
+		<IdMapping>
+			<Element>SkillRequirementHint</Element>
+			<Ids>
+				<string>Identifier</string>
+				<string>Level</string>
+			</Ids>
+		</IdMapping>
+		<IdMapping>
+			<Element>StatValue</Element>
+			<Ids>
+				<string>StatType</string>
+			</Ids>
+		</IdMapping>
+		<IdMapping>
+			<Element>InfoTexts</Element>
+			<Ids>
+				<string>language</string>
 			</Ids>
 		</IdMapping>
 	</IdMappings>

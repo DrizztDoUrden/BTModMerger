@@ -9,14 +9,16 @@ using static BTModMerger.Core.Schema.BTMMSchema;
 
 public class Differ_Tests
 {
-    private static Differ Make() => new(
+    private static Differ Make(ILoggerFactory lf) => new(
+            lf.CreateLogger<Differ>(),
             BTMetadata.Test
     );
 
     [Fact()]
     public void EmptyBase()
     {
-        var differ = Make();
+        using var lf = new LoggerFactory();
+        var differ = Make(lf);
 
         var baseDoc = new XDocument();
         var modDoc = new XDocument(new XElement("RootContainer"));
@@ -27,7 +29,8 @@ public class Differ_Tests
     [Fact()]
     public void EmptyMod()
     {
-        var differ = Make();
+        using var lf = new LoggerFactory();
+        var differ = Make(lf);
 
         var baseDoc = new XDocument(new XElement("RootContainer"));
         var modDoc = new XDocument();
@@ -38,7 +41,8 @@ public class Differ_Tests
     [Fact()]
     public void JustRoots()
     {
-        var differ = Make();
+        using var lf = new LoggerFactory();
+        var differ = Make(lf);
 
         var baseDoc = new XDocument(new XElement("RootContainer"));
         var modDoc = new XDocument(new XElement("RootContainer"));
@@ -53,7 +57,8 @@ public class Differ_Tests
     [Fact()]
     public void Attributes()
     {
-        var differ = Make();
+        using var lf = new LoggerFactory();
+        var differ = Make(lf);
 
         var baseDoc = new XDocument(new XElement("RootContainer",
             new XElement("e0", new XAttribute("identifier", "id0"), new XAttribute("old", 123), new XAttribute("same", 234))
@@ -80,7 +85,8 @@ public class Differ_Tests
     [Fact()]
     public void SomeRemoves()
     {
-        var differ = Make();
+        using var lf = new LoggerFactory();
+        var differ = Make(lf);
 
         var baseDoc = new XDocument(
             new XElement("RootContainer",
@@ -108,7 +114,8 @@ public class Differ_Tests
     [Fact()]
     public void SomeRemovesButItIsOverride()
     {
-        var differ = Make();
+        using var lf = new LoggerFactory();
+        var differ = Make(lf);
 
         var baseDoc = new XDocument(
             new XElement("RootContainer",
@@ -131,7 +138,8 @@ public class Differ_Tests
     [Fact()]
     public void SomeRemovesButItIsFusedBase()
     {
-        var differ = Make();
+        using var lf = new LoggerFactory();
+        var differ = Make(lf);
 
         var baseDoc = new XDocument(
             new XElement(Elements.FusedBase,
@@ -156,7 +164,8 @@ public class Differ_Tests
     [Fact()]
     public void SomeAdds()
     {
-        var differ = Make();
+        using var lf = new LoggerFactory();
+        var differ = Make(lf);
 
         var baseDoc = new XDocument(new XElement("RootContainer",
             new XElement("e0", new XAttribute("identifier", "id0")),
@@ -183,7 +192,8 @@ public class Differ_Tests
     [Fact()]
     public void SimpleOverride()
     {
-        var differ = Make();
+        using var lf = new LoggerFactory();
+        var differ = Make(lf);
 
         var baseDoc = new XDocument(new XElement("RootContainer",
             new XElement("e0", new XAttribute("identifier", "id0")),
@@ -214,7 +224,8 @@ public class Differ_Tests
     [Fact()]
     public void ComplexOverride()
     {
-        var differ = Make();
+        using var lf = new LoggerFactory();
+        var differ = Make(lf);
 
         var baseDoc = new XDocument(new XElement("RootContainer",
             new XElement("e0",

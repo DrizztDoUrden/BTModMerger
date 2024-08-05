@@ -7,6 +7,10 @@
     "DiffMod COL": {
       "commandName": "Project",
       "commandLineArgs": "DiffMod c:\\git\\BaroFused \"C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\602960\\3028141718\" c:\\git\\COLDiff"
+    },
+    "ApplyMod COL": {
+      "commandName": "Project",
+      "commandLineArgs": "ApplyMod c:\\git\\BaroFused c:\\git\\COLDiff c:\\git\\COLRegen"
     }
   }
 }
